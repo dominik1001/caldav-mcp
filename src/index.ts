@@ -35,7 +35,8 @@ async function main() {
       type: "basic",
       username: process.env.CALDAV_USERNAME || "",
       password: process.env.CALDAV_PASSWORD || ""
-    }
+    },
+    logRequests: true // Added this line
   });
 
   const calendars = await client.getCalendars();
