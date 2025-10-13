@@ -16,6 +16,7 @@
 - Connect to CalDAV servers
 - Create calendar events
 - List calendar events within a specific timeframe
+- Delete calendar events by UID
 
 ## Setup
 
@@ -71,9 +72,25 @@ Lists events within a specified timeframe.
 Parameters:
 - `start`: DateTime string - Start of the timeframe
 - `end`: DateTime string - End of the timeframe
+- `calendarUrl`: String - URL of the calendar
 
 Returns:
-- A list of event summaries that fall within the given timeframe
+- A list of events that fall within the given timeframe, each containing:
+  - `uid`: Unique identifier for the event (required for deletion)
+  - `summary`: Event title/summary
+  - `start`: Event start time
+  - `end`: Event end time
+
+### delete-event
+
+Deletes an event from the calendar.
+
+Parameters:
+- `uid`: String - Unique identifier of the event to delete (obtained from list-events)
+- `calendarUrl`: String - URL of the calendar
+
+Returns:
+- Confirmation message when the event is successfully deleted
 
 ## License
 
