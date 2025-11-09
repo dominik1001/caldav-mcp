@@ -18,6 +18,7 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
       }
       const allEvents = await client.getEvents(calendarUrl, options)
       const data = allEvents.map((e) => ({
+        uid: e.uid,
         summary: e.summary,
         start: e.start,
         end: e.end,
