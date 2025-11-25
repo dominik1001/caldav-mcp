@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.github
+*.md
+.husky
+.prettierrc
+.prettierignore
+.npmrc
+.releaserc.json
+eslint.config.mjs
+vitest.config.ts

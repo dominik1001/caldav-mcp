@@ -46,9 +46,18 @@ npx tsc
 ```
 
 2. Run the MCP server:
+
+**Stdio transport (default):**
 ```bash
-node index.js
+node dist/index.js
 ```
+
+**Streamable HTTP transport:**
+```bash
+node dist/index.js --http
+```
+
+The HTTP server listens on port 3000 by default (configurable via `PORT` environment variable).
 
 ## Available Tools
 
