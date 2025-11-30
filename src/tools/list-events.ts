@@ -7,24 +7,23 @@ const dateString = z.string().refine((val) => !isNaN(Date.parse(val)), {
 })
 
 export function registerListEvents(client: CalDAVClient, server: McpServer) {
-  server.tool(
+  server.registerTool(
     "list-events",
-    "List all events between start and end date in the calendar specified by its URL",
-    { start: dateString, end: dateString, calendarUrl: z.string() },
+    {
+      description: "List all events between start and end date in the calendar specified by its URL",
+      inputSchema: { start: dateString, end: dateString, calendarUrl: z.string() },
+    },
     async ({ calendarUrl, start, end }) => {
       const options = {
         start: new Date(start),
         end: new Date(end),
       }
-      const allEvents = await client.getEvents(calendarUrl, options)
-      const data = allEvents.map((e) => ({
-        summary: e.summary,
-        start: e.start,
-        end: e.end,
-      }))
+
+      const events = await client.getEvents(calendarUrl, options)
+
       return {
-        content: [{ type: "text", text: JSON.stringify(data) }],
+        content: [{ type: "text", text: JSON.stringify(events) }],
       }
-    },
-  )
+    }
+  );
 }

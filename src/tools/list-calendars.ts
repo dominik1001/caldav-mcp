@@ -7,13 +7,14 @@ export async function registerListCalendars(
 ) {
   const calendars = await client.getCalendars()
 
-  server.tool(
+  server.registerTool(
     "list-calendars",
-    "List all calendars returning both name and URL",
-    {},
-    async () => {
-      const data = calendars.map((c) => ({ name: c.displayName, url: c.url }))
-      return { content: [{ type: "text", text: JSON.stringify(data) }] }
+    {
+      description: "List all calendars returning both name and URL",
+      inputSchema: {},
     },
+    async () => {
+      return { content: [{ type: "text", text: JSON.stringify(calendars) }] }
+    }
   )
 }

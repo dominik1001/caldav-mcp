@@ -13,15 +13,17 @@ const recurrenceRuleSchema = z.object({
 })
 
 export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
-  server.tool(
+  server.registerTool(
     "create-event",
-    "Creates an event in the calendar specified by its URL",
     {
-      summary: z.string(),
-      start: z.string().datetime(),
-      end: z.string().datetime(),
-      calendarUrl: z.string(),
-      recurrenceRule: recurrenceRuleSchema.optional(),
+      description: "Creates an event in the calendar specified by its URL",
+      inputSchema: {
+        summary: z.string(),
+        start: z.string().datetime(),
+        end: z.string().datetime(),
+        calendarUrl: z.string(),
+        recurrenceRule: recurrenceRuleSchema.optional(),
+      }
     },
     async ({ calendarUrl, summary, start, end, recurrenceRule }) => {
       const event = await client.createEvent(calendarUrl, {
@@ -30,6 +32,7 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
         end: new Date(end),
         recurrenceRule: recurrenceRule as RecurrenceRule,
       })
+
       return {
         content: [{ type: "text", text: event.uid }],
       }
