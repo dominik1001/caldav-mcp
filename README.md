@@ -14,8 +14,10 @@
 ## ✨ Features
 
 - Connect to CalDAV servers
-- Create calendar events
+- List calendars
 - List calendar events within a specific timeframe
+- Create calendar events
+- Delete calendar events
 
 ## Setup
 
@@ -74,6 +76,23 @@ Parameters:
 
 Returns:
 - A list of event summaries that fall within the given timeframe
+
+### list-calendars
+
+Lists all available calendars.
+
+Parameters: none
+
+Returns:
+- List of all available calendars
+
+### delete-event
+
+Deletes an event in the calendar specified by its URL
+
+Parameters:
+- `uid`: string - The UID of the calendar event to delete
+- `calendarUrl`: string - the URL of the calendar event to delete
 
 ## License
 
