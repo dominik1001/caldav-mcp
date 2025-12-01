@@ -40,7 +40,7 @@
 }
 ```
 
-## Usage
+## Development
 
 1. Compile TypeScript to JavaScript:
 ```bash
@@ -49,7 +49,7 @@ npx tsc
 
 2. Run the MCP server:
 ```bash
-node index.js
+node dist/index.js
 ```
 
 ## Available Tools
