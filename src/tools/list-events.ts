@@ -25,5 +25,5 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
         content: [{ type: "text", text: JSON.stringify(events) }],
       }
     }
-  );
+  )
 }
