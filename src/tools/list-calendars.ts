@@ -15,6 +15,6 @@ export async function registerListCalendars(
     },
     async () => {
       return { content: [{ type: "text", text: JSON.stringify(calendars) }] }
-    }
+    },
   )
 }

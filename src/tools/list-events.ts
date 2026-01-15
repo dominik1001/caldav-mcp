@@ -10,8 +10,13 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
   server.registerTool(
     "list-events",
     {
-      description: "List all events between start and end date in the calendar specified by its URL",
-      inputSchema: { start: dateString, end: dateString, calendarUrl: z.string() },
+      description:
+        "List all events between start and end date in the calendar specified by its URL",
+      inputSchema: {
+        start: dateString,
+        end: dateString,
+        calendarUrl: z.string(),
+      },
     },
     async ({ calendarUrl, start, end }) => {
       const options = {
@@ -24,6 +29,6 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
       return {
         content: [{ type: "text", text: JSON.stringify(events) }],
       }
-    }
+    },
   )
 }

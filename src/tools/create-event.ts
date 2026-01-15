@@ -23,7 +23,7 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
         end: z.string().datetime(),
         calendarUrl: z.string(),
         recurrenceRule: recurrenceRuleSchema.optional(),
-      }
+      },
     },
     async ({ calendarUrl, summary, start, end, recurrenceRule }) => {
       const event = await client.createEvent(calendarUrl, {

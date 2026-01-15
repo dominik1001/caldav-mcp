@@ -15,6 +15,6 @@ export function registerDeleteEvent(client: CalDAVClient, server: McpServer) {
       return {
         content: [{ type: "text", text: "Event deleted" }],
       }
-    }
+    },
   )
 }
