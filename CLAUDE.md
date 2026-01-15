@@ -39,8 +39,10 @@ The codebase is a simple MCP server implementation that:
 
 1. Connects to a CalDAV server using credentials from environment variables
 2. Retrieves the user's calendars and uses the first one for operations
-3. Exposes two MCP tools:
-   - `create-event`: Creates a calendar event with summary, start, and end time
+3. Exposes four MCP tools:
+   - `list-calendars`: Lists calendars
    - `list-events`: Lists events between a start and end time
+   - `create-event`: Creates a calendar event with summary, start, and end time
+   - `delete-event`: Deletes event from a calendar 
 
 The MCP server uses the StdioServerTransport to communicate through stdin/stdout, making it suitable for integration with Claude or other AI assistants that support the Model Context Protocol.
