@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/dominik1001-caldav-mcp-badge.png)](https://mseep.ai/app/dominik1001-caldav-mcp)
+
 # caldav-mcp
 
 <div align="center">
