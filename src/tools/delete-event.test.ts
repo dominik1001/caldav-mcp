@@ -21,20 +21,15 @@ describe("registerDeleteEvent", () => {
       version: "0.1.0",
     })
 
-    const originalTool = server.tool.bind(server)
-    server.tool = vi.fn(
-      (
-        name: string,
-        description: string,
-        schema: unknown,
-        handler: ToolHandler,
-      ) => {
+    const originalRegisterTool = server.registerTool.bind(server)
+    server.registerTool = vi.fn(
+      (name: string, config: unknown, handler: ToolHandler) => {
         if (name === "delete-event") {
           toolHandler = handler
         }
-        return originalTool(name, description, schema, handler)
+        return originalRegisterTool(name, config, handler)
       },
-    ) as typeof server.tool
+    ) as typeof server.registerTool
 
     registerDeleteEvent(mockClient as CalDAVClient, server)
 
@@ -65,20 +60,15 @@ describe("registerDeleteEvent", () => {
       version: "0.1.0",
     })
 
-    const originalTool = server.tool.bind(server)
-    server.tool = vi.fn(
-      (
-        name: string,
-        description: string,
-        schema: unknown,
-        handler: ToolHandler,
-      ) => {
+    const originalRegisterTool = server.registerTool.bind(server)
+    server.registerTool = vi.fn(
+      (name: string, config: unknown, handler: ToolHandler) => {
         if (name === "delete-event") {
           toolHandler = handler
         }
-        return originalTool(name, description, schema, handler)
+        return originalRegisterTool(name, config, handler)
       },
-    ) as typeof server.tool
+    ) as typeof server.registerTool
 
     registerDeleteEvent(mockClient as CalDAVClient, server)
 
