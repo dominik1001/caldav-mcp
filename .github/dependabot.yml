@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      devDependencies:
+        patterns:
+          - "*"
+        dependency-type: "development"
+      semantic-release:
+        patterns:
+          - "@semantic-release/*"
+          - "semantic-release"
