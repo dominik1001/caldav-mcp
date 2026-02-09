@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.0",
-    "dotenv": "^16.5.0",
+    "dotenv": "^17.2.4",
     "ts-caldav": "^0.2.7"
   },
   "devDependencies": {
