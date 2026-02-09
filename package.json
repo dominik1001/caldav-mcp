@@ -40,7 +40,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.0",
     "dotenv": "^16.5.0",
-    "ts-caldav": "^0.2.0"
+    "ts-caldav": "^0.2.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
