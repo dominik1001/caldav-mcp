@@ -6,10 +6,10 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-  id-token: write
+  contents: write      # Create releases and commit version bumps
+  issues: write        # Comment on resolved issues
+  pull-requests: write # Comment on merged PRs
+  id-token: write      # Generate OIDC token for npm trusted publishing
 
 jobs:
   lint-and-format:
