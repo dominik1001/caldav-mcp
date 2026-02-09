@@ -1,15 +1,15 @@
 name: Release
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
-  contents: write      # Create releases and commit version bumps
-  issues: write        # Comment on resolved issues
+  contents: write # Create releases and commit version bumps
+  issues: write # Comment on resolved issues
   pull-requests: write # Comment on merged PRs
-  id-token: write      # Generate OIDC token for npm trusted publishing
+  id-token: write # Generate OIDC token for npm trusted publishing
 
 jobs:
   lint-and-format:
@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
       - name: Install dependencies
         run: npm ci
       - name: Run ESLint
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
       - run: npm ci
       - run: npm test
 
@@ -48,10 +48,9 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
       - run: npm ci
       - run: npm run build
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
