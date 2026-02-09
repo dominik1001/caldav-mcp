@@ -15,6 +15,7 @@
     "prepare": "npm run build && husky",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "watch": "tsc --watch",
@@ -32,10 +33,14 @@
   "homepage": "https://github.com/dominik1001/caldav-mcp#readme",
   "author": "Dominik Grusemann",
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.0",
     "dotenv": "^16.5.0",
-    "ts-caldav": "^0.2.0"
+    "ts-caldav": "^0.2.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
@@ -43,6 +48,7 @@
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.3",
     "@types/node": "^24.0.3",
+    "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^9.29.0",
     "eslint-config-prettier": "^10.1.5",
     "husky": "^9.1.7",
