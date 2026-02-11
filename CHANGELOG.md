@@ -1,3 +1,10 @@
+# [0.4.0](https://github.com/dominik1001/caldav-mcp/compare/v0.3.0...v0.4.0) (2026-02-11)
+
+
+### Features
+
+* **deps:** update mcp sdk to 1.26.0 ([b5b129c](https://github.com/dominik1001/caldav-mcp/commit/b5b129c8d9447bc0582009edff9669a1b9d1c3b6))
+
 # [0.3.0](https://github.com/dominik1001/caldav-mcp/compare/v0.2.2...v0.3.0) (2026-02-11)
 
 
