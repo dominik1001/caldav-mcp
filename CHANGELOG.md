@@ -1,3 +1,12 @@
+# [0.3.0](https://github.com/dominik1001/caldav-mcp/compare/v0.2.2...v0.3.0) (2026-02-11)
+
+
+### Features
+
+* add connection check on startup and handle connection errors ([095080e](https://github.com/dominik1001/caldav-mcp/commit/095080e5fdfc9f818bd6c9644dba6319fa2f5bd2))
+* **dev:** add dev script and tsx for runtime development ([fcb75d0](https://github.com/dominik1001/caldav-mcp/commit/fcb75d07da52c212347a448c5eed0ca3ed2a6a4a))
+* **server:** add connection status logging on startup ([bc30ba6](https://github.com/dominik1001/caldav-mcp/commit/bc30ba673e8480914357f3d09800ffb3b31e491c))
+
 ## [0.2.2](https://github.com/dominik1001/caldav-mcp/compare/v0.2.1...v0.2.2) (2026-02-09)
 
 
