@@ -1,10 +1,16 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
-import { CalDAVClient } from "ts-caldav"
-import { z } from "zod"
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CalDAVClient } from "ts-caldav";
+import { z } from "zod";
 
-const dateString = z.string().refine((val) => !isNaN(Date.parse(val)), {
+type ListEventsInput = {
+	start: string;
+	end: string;
+	calendarUrl: string;
+};
+
+const dateString = z.string().refine((val) => !Number.isNaN(Date.parse(val)), {
 	message: "Invalid date string",
-})
+});
 
 export function registerListEvents(client: CalDAVClient, server: McpServer) {
 	server.registerTool(
@@ -18,21 +24,22 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
 				calendarUrl: z.string(),
 			},
 		},
-		async ({ calendarUrl, start, end }) => {
+		async (args: ListEventsInput) => {
+			const { calendarUrl, start, end } = args;
 			const options = {
 				start: new Date(start),
 				end: new Date(end),
-			}
-			const allEvents = await client.getEvents(calendarUrl, options)
+			};
+			const allEvents = await client.getEvents(calendarUrl, options);
 			const data = allEvents.map((e) => ({
 				uid: e.uid,
 				summary: e.summary,
 				start: e.start,
 				end: e.end,
-			}))
+			}));
 			return {
 				content: [{ type: "text", text: JSON.stringify(data) }],
-			}
+			};
 		},
-	)
+	);
 }

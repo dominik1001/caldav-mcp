@@ -7,7 +7,9 @@
 	"bin": {
 		"caldav-mcp": "dist/index.js"
 	},
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "tsc && shx chmod +x dist/*.js",
 		"dev": "tsx --watch --env-file=.env src/index.ts",
