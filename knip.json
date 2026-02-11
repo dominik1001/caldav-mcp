@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "tags": [
+    "-lintignore"
+  ],
+  "ignoreDependencies": [
+    "@semantic-release/github",
+    "@semantic-release/npm"
+  ]
+}
