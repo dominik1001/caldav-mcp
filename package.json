@@ -40,7 +40,7 @@
 		"npm": ">=9.0.0"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.13.0",
+		"@modelcontextprotocol/sdk": "^1.26.0",
 		"ts-caldav": "^0.2.5",
 		"zod": "^3.24.1"
 	},
