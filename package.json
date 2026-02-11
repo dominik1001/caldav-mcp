@@ -40,7 +40,7 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.13.0",
-		"ts-caldav": "^0.2.7"
+		"ts-caldav": "^0.2.0"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "^20.4.1",
