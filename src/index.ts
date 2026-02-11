@@ -24,6 +24,14 @@ async function main() {
 		},
 	});
 
+	// Test connection on startup
+	try {
+		await client.getCalendars();
+	} catch (error) {
+		console.error("❌ Failed to connect to CalDAV server:", error);
+		process.exit(1);
+	}
+
 	registerCreateEvent(client, server);
 	registerListEvents(client, server);
 	registerDeleteEvent(client, server);
