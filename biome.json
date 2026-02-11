@@ -7,7 +7,7 @@
 		"defaultBranch": "main"
 	},
 	"files": {
-		"includes": ["**", "!!**/dist", "!.claude/**", "!.releaserc.json"]
+		"includes": ["**", "!!**/dist", "!.claude/**", "!.releaserc.json", "!**/*.md"]
 	},
 	"formatter": {
 		"enabled": true,
