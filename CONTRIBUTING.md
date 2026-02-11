@@ -30,10 +30,10 @@ Thank you for contributing to caldav-mcp! This guide will help you get started.
 - `npm run test:coverage` - Check coverage (aim for >70%)
 
 ### Code Quality
-- Pre-commit hooks automatically run ESLint and Prettier
-- Use `npm run lint:fix` to auto-fix issues
-- Use `npm run format` to format code
-- Run `npm run validate` before pushing
+- Pre-commit hooks automatically run Biome checks and tests
+- Use `npm run check` to check for issues
+- Use `npm run check:fix` to auto-fix issues
+- Run `npm run validate` before pushing (checks, tests, and build)
 
 ## Commit Convention
 
@@ -100,7 +100,7 @@ describe("registerYourTool", () => {
 ## Code Style
 
 - **TypeScript strict mode** - Required
-- **ESLint + Prettier** - Enforced via pre-commit hooks
+- **Biome** - Unified linting and formatting enforced via pre-commit hooks
 - **No `any` types** - Use proper typing
 - **Error handling** - Always wrap async operations in try-catch
 - **Descriptive names** - Clear function and variable names
