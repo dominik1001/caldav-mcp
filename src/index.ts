@@ -27,6 +27,7 @@ async function main() {
 	// Test connection on startup
 	try {
 		await client.getCalendars();
+		console.log("✅ Connected to CalDAV server");
 	} catch (error) {
 		console.error("❌ Failed to connect to CalDAV server:", error);
 		process.exit(1);
