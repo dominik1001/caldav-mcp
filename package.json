@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build": "tsc && shx chmod +x dist/*.js",
-    "prepare": "npm run build && husky",
+    "prepare": "husky",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -43,6 +43,7 @@
     "ts-caldav": "^0.2.7"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.4.1",
     "@eslint/js": "^9.29.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
