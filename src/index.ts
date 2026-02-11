@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
-import { CalDAVClient } from "ts-caldav"
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { CalDAVClient } from "ts-caldav";
 
-import { registerCreateEvent } from "./tools/create-event.js"
-import { registerDeleteEvent } from "./tools/delete-event.js"
-import { registerListCalendars } from "./tools/list-calendars.js"
-import { registerListEvents } from "./tools/list-events.js"
+import { registerCreateEvent } from "./tools/create-event.js";
+import { registerDeleteEvent } from "./tools/delete-event.js";
+import { registerListCalendars } from "./tools/list-calendars.js";
+import { registerListEvents } from "./tools/list-events.js";
 
 const server = new McpServer({
 	name: "caldav-mcp",
 	version: "0.1.0",
-})
+});
 
 async function main() {
 	const client = await CalDAVClient.create({
@@ -22,24 +22,24 @@ async function main() {
 			username: process.env.CALDAV_USERNAME || "",
 			password: process.env.CALDAV_PASSWORD || "",
 		},
-	})
+	});
 
 	// Test connection on startup
 	try {
-		await client.getCalendars()
+		await client.getCalendars();
 	} catch (error) {
-		console.error("❌ Failed to connect to CalDAV server:", error)
-		process.exit(1)
+		console.error("❌ Failed to connect to CalDAV server:", error);
+		process.exit(1);
 	}
 
-	registerCreateEvent(client, server)
-	registerListEvents(client, server)
-	registerDeleteEvent(client, server)
-	await registerListCalendars(client, server)
+	registerCreateEvent(client, server);
+	registerListEvents(client, server);
+	registerDeleteEvent(client, server);
+	await registerListCalendars(client, server);
 
 	// Start receiving messages on stdin and sending messages on stdout
-	const transport = new StdioServerTransport()
-	await server.connect(transport)
+	const transport = new StdioServerTransport();
+	await server.connect(transport);
 }
 
-main()
+main();
