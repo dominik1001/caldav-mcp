@@ -44,12 +44,25 @@
 
 ## Development
 
-1. Compile TypeScript to JavaScript:
+### Quick Start
+
+Run the MCP server in development mode with auto-reload:
+```bash
+npm run dev
+```
+
+This will run the TypeScript code directly with watch mode and automatically load environment variables from `.env`.
+
+### Manual Build
+
+Alternatively, you can compile TypeScript to JavaScript and run it:
+
+1. Compile:
 ```bash
 npx tsc
 ```
 
-2. Run the MCP server:
+2. Run:
 ```bash
 node dist/index.js
 ```
