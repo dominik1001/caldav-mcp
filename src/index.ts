@@ -8,6 +8,7 @@ import { registerCreateEvent } from "./tools/create-event.js";
 import { registerDeleteEvent } from "./tools/delete-event.js";
 import { registerListCalendars } from "./tools/list-calendars.js";
 import { registerListEvents } from "./tools/list-events.js";
+import { registerUpdateEvent } from "./tools/update-event.js";
 
 const server = new McpServer({
 	name: "caldav-mcp",
@@ -35,6 +36,7 @@ async function main() {
 	registerCreateEvent(client, server);
 	registerListEvents(client, server);
 	registerDeleteEvent(client, server);
+	registerUpdateEvent(client, server);
 	await registerListCalendars(client, server);
 
 	// Start receiving messages on stdin and sending messages on stdout
