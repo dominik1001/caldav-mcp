@@ -25,7 +25,7 @@ const recurrenceRuleSchema = z.object({
 	freq: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]).optional(),
 	interval: z.number().optional(),
 	count: z.number().optional(),
-	until: z.string().datetime().optional(),
+	until: z.string().datetime({ offset: true }).optional(),
 	byday: z.array(z.string()).optional(),
 	bymonthday: z.array(z.number()).optional(),
 	bymonth: z.array(z.number()).optional(),
@@ -41,15 +41,24 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				uid: z.string(),
 				calendarUrl: z.string(),
 				summary: z.string().optional(),
-				start: z.string().datetime().optional(),
-				end: z.string().datetime().optional(),
+				start: z.string().datetime({ offset: true }).optional(),
+				end: z.string().datetime({ offset: true }).optional(),
 				description: z.string().optional(),
 				location: z.string().optional(),
 				recurrenceRule: recurrenceRuleSchema.optional(),
 			},
 		},
 		async (args: UpdateEventInput) => {
-			const { uid, calendarUrl, summary, start, end, description, location, recurrenceRule } = args;
+			const {
+				uid,
+				calendarUrl,
+				summary,
+				start,
+				end,
+				description,
+				location,
+				recurrenceRule,
+			} = args;
 
 			const base = calendarUrl.endsWith("/") ? calendarUrl : `${calendarUrl}/`;
 			const href = `${base}${uid}.ics`;
@@ -66,7 +75,9 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				...(end !== undefined && { end: new Date(end) }),
 				...(description !== undefined && { description }),
 				...(location !== undefined && { location }),
-				...(recurrenceRule !== undefined && { recurrenceRule: recurrenceRule as RecurrenceRule }),
+				...(recurrenceRule !== undefined && {
+					recurrenceRule: recurrenceRule as RecurrenceRule,
+				}),
 			});
 
 			return {
