@@ -10,8 +10,8 @@ type ToolHandler = (params: {
 
 describe("registerDeleteEvent", () => {
 	test("successfully deletes event when server returns 204", async () => {
-		// Create mock CalDAV client that returns 204 (No Content)
 		const mockClient = {
+			getETag: vi.fn().mockResolvedValue('"abc123"'),
 			deleteEvent: vi.fn().mockResolvedValue(undefined),
 		};
 
@@ -31,7 +31,7 @@ describe("registerDeleteEvent", () => {
 			},
 		) as typeof server.registerTool;
 
-		registerDeleteEvent(mockClient as CalDAVClient, server);
+		registerDeleteEvent(mockClient as unknown as CalDAVClient, server);
 
 		expect(toolHandler).toBeDefined();
 
@@ -41,16 +41,19 @@ describe("registerDeleteEvent", () => {
 		});
 
 		expect(result.content[0].text).toBe("Event deleted");
+		expect(mockClient.getETag).toHaveBeenCalledWith(
+			"/f/test-calendar/event-123.ics",
+		);
 		expect(mockClient.deleteEvent).toHaveBeenCalledWith(
 			"/f/test-calendar/",
 			"event-123",
+			'"abc123"',
 		);
 	});
 
 	test("successfully deletes event when server returns 200", async () => {
-		// Create mock CalDAV client
-		// In practice, ts-caldav should accept both 200 and 204 status codes
 		const mockClient = {
+			getETag: vi.fn().mockResolvedValue('"def456"'),
 			deleteEvent: vi.fn().mockResolvedValue(undefined),
 		};
 
@@ -70,19 +73,23 @@ describe("registerDeleteEvent", () => {
 			},
 		) as typeof server.registerTool;
 
-		registerDeleteEvent(mockClient as CalDAVClient, server);
+		registerDeleteEvent(mockClient as unknown as CalDAVClient, server);
 
 		expect(toolHandler).toBeDefined();
 
 		const result = await toolHandler({
-			calendarUrl: "/f/test-calendar/",
+			calendarUrl: "/f/test-calendar",
 			uid: "event-456",
 		});
 
 		expect(result.content[0].text).toBe("Event deleted");
+		expect(mockClient.getETag).toHaveBeenCalledWith(
+			"/f/test-calendar/event-456.ics",
+		);
 		expect(mockClient.deleteEvent).toHaveBeenCalledWith(
-			"/f/test-calendar/",
+			"/f/test-calendar",
 			"event-456",
+			'"def456"',
 		);
 	});
 });

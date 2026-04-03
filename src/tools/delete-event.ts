@@ -16,7 +16,10 @@ export function registerDeleteEvent(client: CalDAVClient, server: McpServer) {
 		},
 		async (args: DeleteEventInput) => {
 			const { uid, calendarUrl } = args;
-			await client.deleteEvent(calendarUrl, uid);
+			const base = calendarUrl.endsWith("/") ? calendarUrl : `${calendarUrl}/`;
+			const href = `${base}${uid}.ics`;
+			const etag = await client.getETag(href);
+			await client.deleteEvent(calendarUrl, uid, etag);
 
 			return {
 				content: [{ type: "text", text: "Event deleted" }],
