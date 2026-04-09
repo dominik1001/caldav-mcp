@@ -19,6 +19,7 @@
 - List calendars
 - List calendar events within a specific timeframe
 - Create calendar events
+- Update calendar events
 - Delete calendar events by UID
 
 ## Setup
@@ -96,6 +97,23 @@ Returns:
   - `summary`: Event title/summary
   - `start`: Event start time
   - `end`: Event end time
+
+### update-event
+
+Updates an existing calendar event. Only provided fields are changed.
+
+Parameters:
+- `uid`: String - Unique identifier of the event to update (obtained from list-events)
+- `calendarUrl`: String - URL of the calendar
+- `summary`: String (optional) - New event title/summary
+- `start`: DateTime string (optional) - New event start time
+- `end`: DateTime string (optional) - New event end time
+- `description`: String (optional) - New event description
+- `location`: String (optional) - New event location
+- `recurrenceRule`: Object (optional) - New recurrence rule
+
+Returns:
+- The unique ID of the updated event
 
 ### delete-event
 
