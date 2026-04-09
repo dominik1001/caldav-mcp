@@ -51,6 +51,53 @@ describe("registerDeleteEvent", () => {
 		);
 	});
 
+	test("fetches etag before deleting and passes it to deleteEvent", async () => {
+		const mockClient = {
+			getETag: vi.fn().mockResolvedValue('"etag-from-server"'),
+			deleteEvent: vi.fn().mockResolvedValue(undefined),
+		};
+
+		let toolHandler: ToolHandler | null = null;
+		const server = new McpServer({
+			name: "test-server",
+			version: "0.1.0",
+		});
+
+		const originalRegisterTool = server.registerTool.bind(server);
+		server.registerTool = vi.fn(
+			(name: string, config: unknown, handler: ToolHandler) => {
+				if (name === "delete-event") {
+					toolHandler = handler;
+				}
+				return originalRegisterTool(name, config, handler);
+			},
+		) as typeof server.registerTool;
+
+		registerDeleteEvent(mockClient as unknown as CalDAVClient, server);
+
+		await toolHandler({
+			calendarUrl: "/cal/work/",
+			uid: "meeting-42",
+		});
+
+		// etag must be fetched from the constructed href
+		expect(mockClient.getETag).toHaveBeenCalledWith(
+			"/cal/work/meeting-42.ics",
+		);
+
+		// the fetched etag is forwarded to deleteEvent (not "*")
+		expect(mockClient.deleteEvent).toHaveBeenCalledWith(
+			"/cal/work/",
+			"meeting-42",
+			'"etag-from-server"',
+		);
+
+		// getETag is called before deleteEvent
+		const etagOrder = mockClient.getETag.mock.invocationCallOrder[0];
+		const deleteOrder = mockClient.deleteEvent.mock.invocationCallOrder[0];
+		expect(etagOrder).toBeLessThan(deleteOrder);
+	});
+
 	test("successfully deletes event when server returns 200", async () => {
 		const mockClient = {
 			getETag: vi.fn().mockResolvedValue('"def456"'),
