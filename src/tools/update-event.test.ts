@@ -39,14 +39,12 @@ describe("registerUpdateEvent", () => {
 	test("updates only the provided fields", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
-			updateEvent: vi
-				.fn()
-				.mockResolvedValue({
-					uid: "event-123",
-					href: existingEvent.href,
-					etag: '"new-etag"',
-					newCtag: "",
-				}),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "event-123",
+				href: existingEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
 		};
 
 		const { server, getHandler } = makeServer();
@@ -96,14 +94,12 @@ describe("registerUpdateEvent", () => {
 	test("appends trailing slash to calendarUrl when building href", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
-			updateEvent: vi
-				.fn()
-				.mockResolvedValue({
-					uid: "event-123",
-					href: existingEvent.href,
-					etag: '"new-etag"',
-					newCtag: "",
-				}),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "event-123",
+				href: existingEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
 		};
 
 		const { server, getHandler } = makeServer();
