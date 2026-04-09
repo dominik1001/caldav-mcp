@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/dominik1001/caldav-mcp/compare/v0.4.0...v0.4.1) (2026-04-09)
+
+
+### Bug Fixes
+
+* prevent $ref in list-events and create-event input schemas ([ef0ace2](https://github.com/dominik1001/caldav-mcp/commit/ef0ace25ddb16b0f887bd76cb49257e01ccb082e))
+
 # [0.4.0](https://github.com/dominik1001/caldav-mcp/compare/v0.3.0...v0.4.0) (2026-02-11)
 
 
