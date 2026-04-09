@@ -8,10 +8,6 @@ type ListEventsInput = {
 	calendarUrl: string;
 };
 
-const dateString = z.string().refine((val) => !Number.isNaN(Date.parse(val)), {
-	message: "Invalid date string",
-});
-
 export function registerListEvents(client: CalDAVClient, server: McpServer) {
 	server.registerTool(
 		"list-events",
@@ -19,8 +15,18 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
 			description:
 				"List all events between start and end date in the calendar specified by its URL",
 			inputSchema: {
-				start: dateString,
-				end: dateString,
+				start: z
+					.string()
+					.refine((val) => !Number.isNaN(Date.parse(val)), {
+						message: "Invalid date string",
+					})
+					.describe("Start date (ISO 8601)"),
+				end: z
+					.string()
+					.refine((val) => !Number.isNaN(Date.parse(val)), {
+						message: "Invalid date string",
+					})
+					.describe("End date (ISO 8601)"),
 				calendarUrl: z.string(),
 			},
 		},

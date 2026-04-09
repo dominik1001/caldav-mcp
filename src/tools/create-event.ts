@@ -35,8 +35,8 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 			description: "Creates an event in the calendar specified by its URL",
 			inputSchema: {
 				summary: z.string(),
-				start: z.string().datetime(),
-				end: z.string().datetime(),
+				start: z.string().datetime().describe("Start datetime (ISO 8601)"),
+				end: z.string().datetime().describe("End datetime (ISO 8601)"),
 				calendarUrl: z.string(),
 				recurrenceRule: recurrenceRuleSchema.optional(),
 			},
