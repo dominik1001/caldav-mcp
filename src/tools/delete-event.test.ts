@@ -81,9 +81,7 @@ describe("registerDeleteEvent", () => {
 		});
 
 		// etag must be fetched from the constructed href
-		expect(mockClient.getETag).toHaveBeenCalledWith(
-			"/cal/work/meeting-42.ics",
-		);
+		expect(mockClient.getETag).toHaveBeenCalledWith("/cal/work/meeting-42.ics");
 
 		// the fetched etag is forwarded to deleteEvent (not "*")
 		expect(mockClient.deleteEvent).toHaveBeenCalledWith(
