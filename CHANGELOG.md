@@ -1,3 +1,18 @@
+# [0.5.0](https://github.com/dominik1001/caldav-mcp/compare/v0.4.1...v0.5.0) (2026-04-09)
+
+
+### Bug Fixes
+
+* allow markdown-only commits in pre-commit hook ([321f3d2](https://github.com/dominik1001/caldav-mcp/commit/321f3d2a3f2b6722cc3d83b0e1c3e280d671dd64))
+* fetch etag before deletion ([f432b19](https://github.com/dominik1001/caldav-mcp/commit/f432b19d294b1ec232f985982a2b6ef6249f4c12))
+* format mockResolvedValue chains in update-event tests ([c972b51](https://github.com/dominik1001/caldav-mcp/commit/c972b51feacc0760f07c6d1f777e8197762f0b5b))
+* update timezone parsing with offset: true ([79d3961](https://github.com/dominik1001/caldav-mcp/commit/79d39619423225556dc93fbd6b5fc676484d7f4e))
+
+
+### Features
+
+* add update-event ([e8f0f1a](https://github.com/dominik1001/caldav-mcp/commit/e8f0f1a834614dd52cf2f1eaf533596c1afbc0f5))
+
 ## [0.4.1](https://github.com/dominik1001/caldav-mcp/compare/v0.4.0...v0.4.1) (2026-04-09)
 
 
