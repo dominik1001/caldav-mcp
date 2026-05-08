@@ -22,26 +22,22 @@ if [ ! -f dist/index.js ]; then
 fi
 
 PROMPT=$(cat <<'EOF'
-You are testing the caldav MCP server. Use only its tools (mcp__caldav__*).
+I want to put a 30-minute placeholder on my calendar about an hour from
+now — just a clearly marked test event so I can confirm my calendar
+sync is working end-to-end. Use whichever of my calendars comes up
+first. After it's on there, change the title so I can tell it actually
+updated, then look at the calendar again to confirm the new title is
+showing, and finally remove it so it doesn't clutter my schedule. If
+something goes sideways partway through, please still try to clean up
+the placeholder before you stop.
 
-1. List all tools the server exposes.
-2. Call list-calendars and pick the first calendar's URL.
-3. Create an event ~1 hour from now lasting 30 minutes with a clearly
-   marked test summary, on that calendar.
-4. Call list-events spanning that window and verify your created event
-   appears (match by uid).
-5. Update the event's summary.
-6. Delete the event and confirm a follow-up list-events no longer
-   contains it.
-7. As a deliberate bad-input test, call list-events with an invalid
-   date string (e.g. "not-a-date") and confirm the server returns a
-   structured error rather than crashing.
+One last thing: as a sanity check, deliberately ask for events using
+a nonsense date like "not-a-date" and tell me whether the server
+responded with a clean error or blew up.
 
-Always clean up: if any step after create-event fails, still attempt
-to delete the event before reporting.
-
-Return findings as JSON matching the provided schema. Set ok=false on
-any tool that errored unexpectedly and include the raw error string.
+Report back as JSON matching the provided schema, one entry per
+calendar tool you exercised. Set ok=false for any tool that errored
+unexpectedly and include the raw error string.
 EOF
 )
 
