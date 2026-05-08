@@ -7,6 +7,8 @@ type CreateEventInput = {
 	start: string;
 	end: string;
 	calendarUrl: string;
+	description?: string;
+	location?: string;
 	recurrenceRule?: {
 		freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 		interval?: number;
@@ -44,15 +46,27 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 					.datetime({ offset: true })
 					.describe("End datetime (ISO 8601)"),
 				calendarUrl: z.string(),
+				description: z.string().optional(),
+				location: z.string().optional(),
 				recurrenceRule: recurrenceRuleSchema.optional(),
 			},
 		},
 		async (args: CreateEventInput) => {
-			const { calendarUrl, summary, start, end, recurrenceRule } = args;
+			const {
+				calendarUrl,
+				summary,
+				start,
+				end,
+				description,
+				location,
+				recurrenceRule,
+			} = args;
 			const event = await client.createEvent(calendarUrl, {
 				summary: summary,
 				start: new Date(start),
 				end: new Date(end),
+				...(description !== undefined && { description }),
+				...(location !== undefined && { location }),
 				recurrenceRule: recurrenceRule as RecurrenceRule,
 			});
 
