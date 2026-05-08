@@ -21,6 +21,7 @@
 		"check:fix": "biome check --write .",
 		"check:ci": "biome ci .",
 		"validate": "npm run check && npm test && npm run build",
+		"smoke": "npm run build && tsx --env-file=.env scripts/smoke.ts",
 		"watch": "tsc --watch",
 		"semantic-release": "semantic-release",
 		"knip": "knip"
