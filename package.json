@@ -20,7 +20,7 @@
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
 		"check:ci": "biome ci .",
-		"validate": "npm run check && npm test && npm run build",
+		"validate": "npm run check && npm test && npm run knip && npm run build",
 		"smoke": "npm run build && tsx --env-file=.env scripts/smoke.ts",
 		"smoke:agent": "npm run build && bash scripts/smoke-agent.sh",
 		"watch": "tsc --watch",

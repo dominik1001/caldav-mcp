@@ -4,10 +4,8 @@ pre-commit:
     biome:
       run: npx biome check --staged --write --no-errors-on-unmatched
       stage_fixed: true
-    test:
-      run: npm test
-    knip:
-      run: npx knip
+    validate:
+      run: npm run validate
 
 commit-msg:
   commands:

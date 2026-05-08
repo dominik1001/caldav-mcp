@@ -22,12 +22,13 @@ function log(step: string, detail?: unknown) {
 }
 
 async function main() {
-	const required = ["CALDAV_BASE_URL", "CALDAV_USERNAME", "CALDAV_PASSWORD"];
-	for (const key of required) {
-		if (!process.env[key]) {
-			console.error(`Missing env var: ${key}`);
+	function requireEnv(name: string): string {
+		const value = process.env[name];
+		if (!value) {
+			console.error(`Missing env var: ${name}`);
 			process.exit(1);
 		}
+		return value;
 	}
 
 	const transport = new StdioClientTransport({
@@ -35,9 +36,9 @@ async function main() {
 		args: ["dist/index.js"],
 		env: {
 			PATH: process.env.PATH ?? "",
-			CALDAV_BASE_URL: process.env.CALDAV_BASE_URL!,
-			CALDAV_USERNAME: process.env.CALDAV_USERNAME!,
-			CALDAV_PASSWORD: process.env.CALDAV_PASSWORD!,
+			CALDAV_BASE_URL: requireEnv("CALDAV_BASE_URL"),
+			CALDAV_USERNAME: requireEnv("CALDAV_USERNAME"),
+			CALDAV_PASSWORD: requireEnv("CALDAV_PASSWORD"),
 		},
 		stderr: "inherit",
 	});

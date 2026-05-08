@@ -15,7 +15,6 @@ MCP server exposing CalDAV calendar operations as tools for AI assistants.
 
 ## Workflow
 - Dev: `npm run dev` (watch). Build: `npm run build`. Test: `npm test`.
-- Before pushing: `npm run validate` (check + test + build).
 - Conventional Commits enforced by commitlint; versions and `CHANGELOG.md` are owned by semantic-release — do not bump `version` or edit the changelog by hand.
 
 ## Smoke tests
