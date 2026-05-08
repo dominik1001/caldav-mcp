@@ -1,48 +1,19 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+MCP server exposing CalDAV calendar operations as tools for AI assistants.
 
-## Project Overview
+## Stack
+- TypeScript, ESM (`"type": "module"`), Node ≥18, compiled with `tsc` to `dist/`.
+- Biome for lint + format (`npm run check` / `check:fix`) — do not add ESLint or Prettier.
+- Vitest for tests, lefthook for git hooks, semantic-release for publishing.
+- Runtime deps: `@modelcontextprotocol/sdk`, `ts-caldav`, `zod`.
 
-This project is a CalDAV client using the Model Context Protocol (MCP) server to expose calendar operations as tools. It uses:
+## Layout
+- `src/index.ts` — server entry; wires up `StdioServerTransport` and registers tools.
+- `src/tools/<tool>.ts` — one file per MCP tool, with `*.test.ts` next to it.
+- Credentials come from `.env` (see `.env.example`); dev loads it via `tsx --env-file=.env`, not `dotenv`.
 
-- ts-caldav: A TypeScript CalDAV client for interacting with calendar servers
-- MCP SDK: Model Context Protocol for creating tools that can be used by AI assistants
-- dotenv: For environment variable management
-
-## Environment Setup
-
-The project requires the following environment variables to be set in a `.env` file:
-
-```
-CALDAV_BASE_URL=<CalDAV server URL>
-CALDAV_USERNAME=<CalDAV username>
-CALDAV_PASSWORD=<CalDAV password>
-```
-
-## Common Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Compile TypeScript to JavaScript
-npx tsc
-
-# Run the MCP server
-node index.js
-```
-
-## Project Architecture
-
-The codebase is a simple MCP server implementation that:
-
-1. Connects to a CalDAV server using credentials from environment variables
-2. Retrieves the user's calendars and uses the first one for operations
-3. Exposes four MCP tools:
-   - `list-calendars`: Lists calendars
-   - `list-events`: Lists events between a start and end time
-   - `create-event`: Creates a calendar event with summary, start, and end time
-   - `delete-event`: Deletes event from a calendar 
-
-The MCP server uses the StdioServerTransport to communicate through stdin/stdout, making it suitable for integration with Claude or other AI assistants that support the Model Context Protocol.
+## Workflow
+- Dev: `npm run dev` (watch). Build: `npm run build`. Test: `npm test`.
+- Before pushing: `npm run validate` (check + test + build).
+- Conventional Commits enforced by commitlint; versions and `CHANGELOG.md` are owned by semantic-release — do not bump `version` or edit the changelog by hand.
