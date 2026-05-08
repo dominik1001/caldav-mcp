@@ -45,20 +45,21 @@ describe("MCP Server Console Output", () => {
 		const { McpServer } = await import(
 			"@modelcontextprotocol/sdk/server/mcp.js"
 		);
+		class MockMcpServer {
+			registerTool = vi.fn();
+			connect = vi.fn().mockResolvedValue(undefined);
+		}
 		vi.mocked(McpServer).mockImplementation(
-			() =>
-				({
-					registerTool: vi.fn(),
-					connect: vi.fn().mockResolvedValue(undefined),
-				}) as unknown as InstanceType<typeof McpServer>,
+			MockMcpServer as unknown as typeof McpServer,
 		);
 
 		// Mock StdioServerTransport
 		const { StdioServerTransport } = await import(
 			"@modelcontextprotocol/sdk/server/stdio.js"
 		);
+		class MockStdioServerTransport {}
 		vi.mocked(StdioServerTransport).mockImplementation(
-			() => ({}) as unknown as InstanceType<typeof StdioServerTransport>,
+			MockStdioServerTransport as unknown as typeof StdioServerTransport,
 		);
 
 		// Mock tool registration functions
