@@ -6,6 +6,8 @@ pre-commit:
       stage_fixed: true
     test:
       run: npm test
+    knip:
+      run: npx knip
 
 commit-msg:
   commands:
