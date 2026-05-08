@@ -65,8 +65,67 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+
+      - name: Install Radicale
+        run: pip install radicale
+
+      - name: Configure Radicale
+        run: |
+          mkdir -p "$RUNNER_TEMP/radicale/collections"
+          printf 'test:test\n' > "$RUNNER_TEMP/radicale/htpasswd"
+
+      - name: Start Radicale
+        run: |
+          radicale \
+            --storage-filesystem-folder "$RUNNER_TEMP/radicale/collections" \
+            --auth-type htpasswd \
+            --auth-htpasswd-filename "$RUNNER_TEMP/radicale/htpasswd" \
+            --auth-htpasswd-encryption plain \
+            --server-hosts 127.0.0.1:5232 &
+          for _ in $(seq 1 30); do
+            curl -fsS -u test:test http://127.0.0.1:5232/ >/dev/null && exit 0
+            sleep 0.5
+          done
+          echo "Radicale failed to start" >&2
+          exit 1
+
+      - name: Create test calendar
+        run: |
+          curl -fsS -X MKCOL -u test:test \
+            -H "Content-Type: application/xml" \
+            --data '<?xml version="1.0" encoding="utf-8" ?>
+              <create xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+                <set><prop>
+                  <resourcetype><collection/><C:calendar/></resourcetype>
+                  <displayname>Test</displayname>
+                </prop></set>
+              </create>' \
+            http://127.0.0.1:5232/test/default/
+
+      - name: Run smoke
+        run: |
+          cat > .env <<EOF
+          CALDAV_BASE_URL=http://127.0.0.1:5232
+          CALDAV_USERNAME=test
+          CALDAV_PASSWORD=test
+          EOF
+          npm run smoke
+
   release:
-    needs: [test, knip]
+    needs: [test, knip, smoke]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
