@@ -1,3 +1,12 @@
+# [0.6.0](https://github.com/dominik1001/caldav-mcp/compare/v0.5.0...v0.6.0) (2026-05-08)
+
+
+### Features
+
+* add agent-driven smoke test harness ([1600988](https://github.com/dominik1001/caldav-mcp/commit/160098832b1db2629709bbbd20b6930299518a3e))
+* add mcp server configuration file ([557a046](https://github.com/dominik1001/caldav-mcp/commit/557a046514488191f5b179906349e5119d754de2))
+* add smoke test script for end-to-end tool validation ([7aa3022](https://github.com/dominik1001/caldav-mcp/commit/7aa302233a0566b4ebbc654aed9e988ad2c491d2))
+
 # [0.5.0](https://github.com/dominik1001/caldav-mcp/compare/v0.4.1...v0.5.0) (2026-04-09)
 
 
