@@ -1,0 +1,11 @@
+{
+	"version": 1,
+	"skills": {
+		"review-agents-md": {
+			"source": "bettervibe-org/skills",
+			"sourceType": "github",
+			"skillPath": "plugins/review-agents-md/skills/review-agents-md/SKILL.md",
+			"computedHash": "001b95ffc82669431a1e9bde3e0803d176c266dbca1bfb1736eae159c6a45832"
+		}
+	}
+}

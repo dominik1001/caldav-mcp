@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: false
+  commands:
+    biome:
+      run: npx biome check --staged --write --no-errors-on-unmatched
+      stage_fixed: true
+    test:
+      run: npm test
+    knip:
+      run: npx knip
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx --no -- commitlint --edit {1}

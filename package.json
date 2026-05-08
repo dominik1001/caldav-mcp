@@ -13,7 +13,7 @@
 	"scripts": {
 		"build": "tsc && shx chmod +x dist/*.js",
 		"dev": "tsx --watch --env-file=.env src/index.ts",
-		"prepare": "husky",
+		"prepare": "lefthook install",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
@@ -54,8 +54,8 @@
 		"@semantic-release/npm": "^13.1.4",
 		"@types/node": "^24.10.13",
 		"@vitest/coverage-v8": "^3.2.4",
-		"husky": "^9.1.7",
 		"knip": "^5.83.1",
+		"lefthook": "^2.1.6",
 		"semantic-release": "^25.0.3",
 		"shx": "^0.4.0",
 		"tsx": "^4.21.0",
