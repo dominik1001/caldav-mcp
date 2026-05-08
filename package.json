@@ -43,7 +43,7 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.26.0",
-		"ts-caldav": "^0.2.9",
+		"ts-caldav": "^0.3.5",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
