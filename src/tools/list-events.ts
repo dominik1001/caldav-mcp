@@ -8,27 +8,35 @@ type ListEventsInput = {
 	calendarUrl: string;
 };
 
+export const listEventsDefinition = {
+	name: "list-events",
+	description:
+		"List all events between start and end date in the calendar specified by its URL",
+	inputSchema: {
+		start: z
+			.string()
+			.refine((val) => !Number.isNaN(Date.parse(val)), {
+				message: "Invalid date string",
+			})
+			.describe("Start date (ISO 8601)"),
+		end: z
+			.string()
+			.refine((val) => !Number.isNaN(Date.parse(val)), {
+				message: "Invalid date string",
+			})
+			.describe("End date (ISO 8601)"),
+		calendarUrl: z.string(),
+	},
+	returns:
+		"A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, and `end`",
+} as const;
+
 export function registerListEvents(client: CalDAVClient, server: McpServer) {
 	server.registerTool(
-		"list-events",
+		listEventsDefinition.name,
 		{
-			description:
-				"List all events between start and end date in the calendar specified by its URL",
-			inputSchema: {
-				start: z
-					.string()
-					.refine((val) => !Number.isNaN(Date.parse(val)), {
-						message: "Invalid date string",
-					})
-					.describe("Start date (ISO 8601)"),
-				end: z
-					.string()
-					.refine((val) => !Number.isNaN(Date.parse(val)), {
-						message: "Invalid date string",
-					})
-					.describe("End date (ISO 8601)"),
-				calendarUrl: z.string(),
-			},
+			description: listEventsDefinition.description,
+			inputSchema: listEventsDefinition.inputSchema,
 		},
 		async (args: ListEventsInput) => {
 			const { calendarUrl, start, end } = args;

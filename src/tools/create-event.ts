@@ -30,26 +30,33 @@ const recurrenceRuleSchema = z.object({
 	bymonth: z.array(z.number()).optional(),
 });
 
+export const createEventDefinition = {
+	name: "create-event",
+	description: "Creates an event in the calendar specified by its URL",
+	inputSchema: {
+		summary: z.string(),
+		start: z
+			.string()
+			.datetime({ offset: true })
+			.describe("Start datetime (ISO 8601)"),
+		end: z
+			.string()
+			.datetime({ offset: true })
+			.describe("End datetime (ISO 8601)"),
+		calendarUrl: z.string(),
+		description: z.string().optional(),
+		location: z.string().optional(),
+		recurrenceRule: recurrenceRuleSchema.optional(),
+	},
+	returns: "The unique ID of the created event",
+} as const;
+
 export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 	server.registerTool(
-		"create-event",
+		createEventDefinition.name,
 		{
-			description: "Creates an event in the calendar specified by its URL",
-			inputSchema: {
-				summary: z.string(),
-				start: z
-					.string()
-					.datetime({ offset: true })
-					.describe("Start datetime (ISO 8601)"),
-				end: z
-					.string()
-					.datetime({ offset: true })
-					.describe("End datetime (ISO 8601)"),
-				calendarUrl: z.string(),
-				description: z.string().optional(),
-				location: z.string().optional(),
-				recurrenceRule: recurrenceRuleSchema.optional(),
-			},
+			description: createEventDefinition.description,
+			inputSchema: createEventDefinition.inputSchema,
 		},
 		async (args: CreateEventInput) => {
 			const {
