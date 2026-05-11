@@ -28,7 +28,7 @@ export const listEventsDefinition = {
 		calendarUrl: z.string(),
 	},
 	returns:
-		"A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, and `end`",
+		"A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`",
 } as const;
 
 export function registerListEvents(client: CalDAVClient, server: McpServer) {
@@ -50,6 +50,8 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
 				summary: e.summary,
 				start: e.start,
 				end: e.end,
+				...(e.description && { description: e.description }),
+				...(e.location && { location: e.location }),
 			}));
 			return {
 				content: [{ type: "text", text: JSON.stringify(data) }],

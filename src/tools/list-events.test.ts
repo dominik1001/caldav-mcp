@@ -70,4 +70,50 @@ describe("registerListEvents", () => {
 		expect(events[1]).toHaveProperty("uid", "event-456");
 		expect(events[1]).toHaveProperty("summary", "Another Event");
 	});
+
+	test("includes description and location when present, omits them when absent", async () => {
+		const mockClient = {
+			getEvents: vi.fn().mockResolvedValue([
+				{
+					uid: "event-with-extras",
+					summary: "Full Event",
+					start: new Date("2025-10-13T10:00:00Z"),
+					end: new Date("2025-10-13T11:00:00Z"),
+					description: "Meeting notes",
+					location: "Conference Room A",
+				},
+				{
+					uid: "event-bare",
+					summary: "Bare Event",
+					start: new Date("2025-10-14T14:00:00Z"),
+					end: new Date("2025-10-14T15:00:00Z"),
+				},
+			]),
+		};
+
+		let toolHandler: ToolHandler | null = null;
+		const server = new McpServer({ name: "test-server", version: "0.1.0" });
+		const originalRegisterTool = server.registerTool.bind(server);
+		server.registerTool = vi.fn(
+			(name: string, config: unknown, handler: ToolHandler) => {
+				if (name === "list-events") toolHandler = handler;
+				return originalRegisterTool(name, config, handler);
+			},
+		) as typeof server.registerTool;
+
+		registerListEvents(mockClient as CalDAVClient, server);
+		expect(toolHandler).toBeDefined();
+
+		const result = await toolHandler({
+			calendarUrl: "/test/calendar/",
+			start: "2025-10-01T00:00:00Z",
+			end: "2025-10-31T23:59:59Z",
+		});
+
+		const events = JSON.parse(result.content[0].text);
+		expect(events[0]).toHaveProperty("description", "Meeting notes");
+		expect(events[0]).toHaveProperty("location", "Conference Room A");
+		expect(events[1]).not.toHaveProperty("description");
+		expect(events[1]).not.toHaveProperty("location");
+	});
 });

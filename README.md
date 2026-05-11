@@ -90,7 +90,7 @@ Parameters:
 - `calendarUrl`: string
 
 Returns:
-- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, and `end`
+- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`
 
 ### create-event
 
