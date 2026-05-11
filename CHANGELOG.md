@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/dominik1001/caldav-mcp/compare/v0.6.0...v0.7.0) (2026-05-11)
+
+
+### Features
+
+* **create-event:** support description and location fields ([5b498e5](https://github.com/dominik1001/caldav-mcp/commit/5b498e5308c3d9737c1f9ff01e8131662ea202f5))
+
 # [0.6.0](https://github.com/dominik1001/caldav-mcp/compare/v0.5.0...v0.6.0) (2026-05-08)
 
 
