@@ -1,3 +1,10 @@
+# [0.8.0](https://github.com/dominik1001/caldav-mcp/compare/v0.7.0...v0.8.0) (2026-05-11)
+
+
+### Features
+
+* **list-events:** include description and location in results ([4f71f96](https://github.com/dominik1001/caldav-mcp/commit/4f71f96ad68feee49d8bda3359860de6b0aff289)), closes [#48](https://github.com/dominik1001/caldav-mcp/issues/48)
+
 # [0.7.0](https://github.com/dominik1001/caldav-mcp/compare/v0.6.0...v0.7.0) (2026-05-11)
 
 
