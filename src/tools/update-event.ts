@@ -31,22 +31,33 @@ const recurrenceRuleSchema = z.object({
 	bymonth: z.array(z.number()).optional(),
 });
 
+export const updateEventDefinition = {
+	name: "update-event",
+	description:
+		"Updates an existing event in the calendar specified by its URL. Only provided fields are changed.",
+	inputSchema: {
+		uid: z
+			.string()
+			.describe(
+				"Unique identifier of the event to update (obtained from list-events)",
+			),
+		calendarUrl: z.string(),
+		summary: z.string().optional(),
+		start: z.string().datetime({ offset: true }).optional(),
+		end: z.string().datetime({ offset: true }).optional(),
+		description: z.string().optional(),
+		location: z.string().optional(),
+		recurrenceRule: recurrenceRuleSchema.optional(),
+	},
+	returns: "The unique ID of the updated event",
+} as const;
+
 export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 	server.registerTool(
-		"update-event",
+		updateEventDefinition.name,
 		{
-			description:
-				"Updates an existing event in the calendar specified by its URL. Only provided fields are changed.",
-			inputSchema: {
-				uid: z.string(),
-				calendarUrl: z.string(),
-				summary: z.string().optional(),
-				start: z.string().datetime({ offset: true }).optional(),
-				end: z.string().datetime({ offset: true }).optional(),
-				description: z.string().optional(),
-				location: z.string().optional(),
-				recurrenceRule: recurrenceRuleSchema.optional(),
-			},
+			description: updateEventDefinition.description,
+			inputSchema: updateEventDefinition.inputSchema,
 		},
 		async (args: UpdateEventInput) => {
 			const {

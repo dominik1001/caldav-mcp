@@ -4,6 +4,10 @@ pre-commit:
     biome:
       run: npx biome check --staged --write --no-errors-on-unmatched
       stage_fixed: true
+    docs:
+      glob: "src/tools/*.ts"
+      run: npm run docs
+      stage_fixed: true
     validate:
       run: npm run validate
 

@@ -7,12 +7,26 @@ type DeleteEventInput = {
 	calendarUrl: string;
 };
 
+export const deleteEventDefinition = {
+	name: "delete-event",
+	description: "Deletes an event in the calendar specified by its URL",
+	inputSchema: {
+		uid: z
+			.string()
+			.describe(
+				"Unique identifier of the event to delete (obtained from list-events)",
+			),
+		calendarUrl: z.string(),
+	},
+	returns: "Confirmation message when the event is successfully deleted",
+} as const;
+
 export function registerDeleteEvent(client: CalDAVClient, server: McpServer) {
 	server.registerTool(
-		"delete-event",
+		deleteEventDefinition.name,
 		{
-			description: "Deletes an event in the calendar specified by its URL",
-			inputSchema: { uid: z.string(), calendarUrl: z.string() },
+			description: deleteEventDefinition.description,
+			inputSchema: deleteEventDefinition.inputSchema,
 		},
 		async (args: DeleteEventInput) => {
 			const { uid, calendarUrl } = args;
