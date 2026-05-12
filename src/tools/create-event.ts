@@ -2,23 +2,37 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, RecurrenceRule } from "ts-caldav";
 import { z } from "zod";
 
+type RecurrenceRuleInput = {
+	freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | undefined;
+	interval?: number | undefined;
+	count?: number | undefined;
+	until?: string | undefined;
+	byday?: string[] | undefined;
+	bymonthday?: number[] | undefined;
+	bymonth?: number[] | undefined;
+};
+
 type CreateEventInput = {
 	summary: string;
 	start: string;
 	end: string;
 	calendarUrl: string;
-	description?: string;
-	location?: string;
-	recurrenceRule?: {
-		freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
-		interval?: number;
-		count?: number;
-		until?: string;
-		byday?: string[];
-		bymonthday?: number[];
-		bymonth?: number[];
-	};
+	description?: string | undefined;
+	location?: string | undefined;
+	recurrenceRule?: RecurrenceRuleInput | undefined;
 };
+
+function toRecurrenceRule(r: RecurrenceRuleInput): RecurrenceRule {
+	const out: RecurrenceRule = {};
+	if (r.freq !== undefined) out.freq = r.freq;
+	if (r.interval !== undefined) out.interval = r.interval;
+	if (r.count !== undefined) out.count = r.count;
+	if (r.until !== undefined) out.until = new Date(r.until);
+	if (r.byday !== undefined) out.byday = r.byday;
+	if (r.bymonthday !== undefined) out.bymonthday = r.bymonthday;
+	if (r.bymonth !== undefined) out.bymonth = r.bymonth;
+	return out;
+}
 
 const recurrenceRuleSchema = z.object({
 	freq: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]).optional(),
@@ -74,7 +88,9 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 				end: new Date(end),
 				...(description !== undefined && { description }),
 				...(location !== undefined && { location }),
-				recurrenceRule: recurrenceRule as RecurrenceRule,
+				...(recurrenceRule !== undefined && {
+					recurrenceRule: toRecurrenceRule(recurrenceRule),
+				}),
 			});
 
 			return {
