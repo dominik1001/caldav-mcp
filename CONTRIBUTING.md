@@ -4,7 +4,7 @@ Thank you for contributing to caldav-mcp! This guide will help you get started.
 
 ## Development Setup
 
-1. **Prerequisites**: Node.js >= 18.0.0, npm >= 9.0.0
+1. **Prerequisites**: Node.js >= 18.0.0, npm >= 9.0.0, [gitleaks](https://github.com/gitleaks/gitleaks) (used by the pre-commit hook; `brew install gitleaks`)
 2. **Clone and install**:
    ```bash
    git clone https://github.com/dominik1001/caldav-mcp.git
