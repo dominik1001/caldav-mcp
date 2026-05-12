@@ -11,6 +11,15 @@ type ToolHandler = (params: {
 	end?: string;
 	description?: string;
 	location?: string;
+	recurrenceRule?: {
+		freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+		interval?: number;
+		count?: number;
+		until?: string;
+		byday?: string[];
+		bymonthday?: number[];
+		bymonth?: number[];
+	};
 }) => Promise<{ content: { type: string; text: string }[] }>;
 
 const existingEvent: Event = {
@@ -112,5 +121,34 @@ describe("registerUpdateEvent", () => {
 			"/f/test-calendar",
 			["/f/test-calendar/event-123.ics"],
 		);
+	});
+
+	test("converts recurrenceRule.until from ISO string to Date", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "event-123",
+				href: existingEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		const untilIso = "2026-05-15T10:00:00.000Z";
+		await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			recurrenceRule: { freq: "DAILY", until: untilIso },
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.recurrenceRule?.until).toBeInstanceOf(Date);
+		expect(passed?.recurrenceRule?.until?.toISOString()).toBe(untilIso);
+		expect(passed?.recurrenceRule?.freq).toBe("DAILY");
 	});
 });

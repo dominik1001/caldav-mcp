@@ -2,13 +2,19 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
-type ToolResult = { content: Array<{ type: string; text: string }> };
+type ToolResult = {
+	content: Array<{ type: string; text: string }>;
+	isError?: boolean;
+};
 
 function unwrapText(result: unknown): string {
 	const r = result as ToolResult;
 	const first = r.content?.[0];
 	if (!first || first.type !== "text") {
 		throw new Error(`Unexpected tool result shape: ${JSON.stringify(result)}`);
+	}
+	if (r.isError) {
+		throw new Error(`Tool returned error: ${first.text}`);
 	}
 	return first.text;
 }
@@ -139,6 +145,37 @@ async function main() {
 	if (after.some((e) => e.uid === updatedUid))
 		throw new Error(`Event ${updatedUid} still present after delete`);
 	log("verified deletion");
+
+	// End-to-end coverage for recurring events. Specific `until` → Date
+	// conversion is asserted in create-event.test.ts / update-event.test.ts;
+	// here we just verify the recurrence path round-trips through ts-caldav
+	// against a real CalDAV server.
+	const recurStart = new Date(Date.now() + 2 * 60 * 60 * 1000);
+	const recurEnd = new Date(recurStart.getTime() + 30 * 60 * 1000);
+	const recurUid = unwrapText(
+		await client.callTool({
+			name: "create-event",
+			arguments: {
+				summary: `caldav-mcp smoke recur ${recurStart.toISOString()}`,
+				start: recurStart.toISOString(),
+				end: recurEnd.toISOString(),
+				calendarUrl,
+				recurrenceRule: {
+					freq: "DAILY",
+					count: 3,
+				},
+			},
+		}),
+	);
+	log("created recurring event", recurUid);
+
+	unwrapText(
+		await client.callTool({
+			name: "delete-event",
+			arguments: { uid: recurUid, calendarUrl },
+		}),
+	);
+	log("deleted recurring event");
 
 	await client.close();
 	console.log("\n✅ smoke test passed");
