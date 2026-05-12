@@ -1,6 +1,8 @@
 pre-commit:
   parallel: false
   commands:
+    gitleaks:
+      run: gitleaks git --staged --redact --no-banner
     biome:
       run: npx biome check --staged --write --no-errors-on-unmatched
       stage_fixed: true
