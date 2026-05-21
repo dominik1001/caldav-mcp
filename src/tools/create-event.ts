@@ -47,7 +47,8 @@ const recurrenceRuleSchema = z.object({
 
 export const createEventDefinition = {
 	name: "create-event",
-	description: "Creates an event in the calendar specified by its URL",
+	description:
+		"Creates an event in the calendar specified by its URL. For a one-day full-day event, set `wholeDay` to true and set `start` and `end` to the same calendar day.",
 	inputSchema: {
 		summary: z.string(),
 		start: z

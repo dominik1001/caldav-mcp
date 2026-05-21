@@ -49,7 +49,7 @@ const recurrenceRuleSchema = z.object({
 export const updateEventDefinition = {
 	name: "update-event",
 	description:
-		"Updates an existing event in the calendar specified by its URL. Only provided fields are changed.",
+		"Updates an existing event in the calendar specified by its URL. Only provided fields are changed. For a one-day full-day event, set `wholeDay` to true and set `start` and `end` to the same calendar day.",
 	inputSchema: {
 		uid: z
 			.string()

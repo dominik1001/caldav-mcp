@@ -40,8 +40,11 @@ function unwrapOptional(schema: z.ZodTypeAny): {
 }
 
 function describeType(schema: z.ZodTypeAny): string {
-	if (schema instanceof z.ZodEffects) {
-		return describeType(schema._def.schema as z.ZodTypeAny);
+	const ZodEffects = (z as typeof z & { ZodEffects?: unknown }).ZodEffects;
+	if (typeof ZodEffects === "function" && schema instanceof ZodEffects) {
+		const inner = (schema as z.ZodTypeAny & { _def: { schema: z.ZodTypeAny } })
+			._def.schema;
+		return describeType(inner);
 	}
 	if (schema instanceof z.ZodString) return "string";
 	if (schema instanceof z.ZodNumber) return "number";

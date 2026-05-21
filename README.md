@@ -94,7 +94,7 @@ Returns:
 
 ### create-event
 
-Creates an event in the calendar specified by its URL
+Creates an event in the calendar specified by its URL. For a one-day full-day event, set `wholeDay` to true and set `start` and `end` to the same calendar day.
 
 Parameters:
 - `summary`: string
@@ -118,7 +118,7 @@ Returns:
 
 ### update-event
 
-Updates an existing event in the calendar specified by its URL. Only provided fields are changed.
+Updates an existing event in the calendar specified by its URL. Only provided fields are changed. For a one-day full-day event, set `wholeDay` to true and set `start` and `end` to the same calendar day.
 
 Parameters:
 - `uid`: string — Unique identifier of the event to update (obtained from list-events)
