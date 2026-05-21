@@ -18,6 +18,7 @@ type UpdateEventInput = {
 	summary?: string | undefined;
 	start?: string | undefined;
 	end?: string | undefined;
+	wholeDay?: boolean | undefined;
 	description?: string | undefined;
 	location?: string | undefined;
 	recurrenceRule?: RecurrenceRuleInput | undefined;
@@ -59,6 +60,10 @@ export const updateEventDefinition = {
 		summary: z.string().optional(),
 		start: z.string().datetime({ offset: true }).optional(),
 		end: z.string().datetime({ offset: true }).optional(),
+		wholeDay: z
+			.boolean()
+			.optional()
+			.describe("Update whether this is a whole-day event"),
 		description: z.string().optional(),
 		location: z.string().optional(),
 		recurrenceRule: recurrenceRuleSchema.optional(),
@@ -80,6 +85,7 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				summary,
 				start,
 				end,
+				wholeDay,
 				description,
 				location,
 				recurrenceRule,
@@ -98,6 +104,7 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				...(summary !== undefined && { summary }),
 				...(start !== undefined && { start: new Date(start) }),
 				...(end !== undefined && { end: new Date(end) }),
+				...(wholeDay !== undefined && { wholeDay }),
 				...(description !== undefined && { description }),
 				...(location !== undefined && { location }),
 				...(recurrenceRule !== undefined && {

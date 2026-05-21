@@ -101,6 +101,7 @@ Parameters:
 - `start`: string — Start datetime (ISO 8601)
 - `end`: string — End datetime (ISO 8601)
 - `calendarUrl`: string
+- `wholeDay`: boolean (optional) — Create as a whole-day event
 - `description`: string (optional)
 - `location`: string (optional)
 - `recurrenceRule`: object (optional)
@@ -125,6 +126,7 @@ Parameters:
 - `summary`: string (optional)
 - `start`: string (optional)
 - `end`: string (optional)
+- `wholeDay`: boolean (optional) — Update whether this is a whole-day event
 - `description`: string (optional)
 - `location`: string (optional)
 - `recurrenceRule`: object (optional)

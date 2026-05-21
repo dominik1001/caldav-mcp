@@ -8,6 +8,7 @@ type ToolHandler = (params: {
 	start: string;
 	end: string;
 	calendarUrl: string;
+	wholeDay?: boolean;
 	description?: string;
 	location?: string;
 	recurrenceRule?: {
@@ -79,5 +80,27 @@ describe("registerCreateEvent", () => {
 
 		const passed = mockClient.createEvent.mock.calls[0]?.[1];
 		expect(passed?.recurrenceRule).toBeUndefined();
+	});
+
+	test("passes wholeDay flag when provided", async () => {
+		const mockClient = {
+			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerCreateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			summary: "Whole day",
+			start: "2026-05-12T00:00:00.000Z",
+			end: "2026-05-13T00:00:00.000Z",
+			calendarUrl: "/f/test-calendar/",
+			wholeDay: true,
+		});
+
+		const passed = mockClient.createEvent.mock.calls[0]?.[1];
+		expect(passed?.wholeDay).toBe(true);
 	});
 });

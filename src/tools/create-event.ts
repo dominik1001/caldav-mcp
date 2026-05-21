@@ -17,6 +17,7 @@ type CreateEventInput = {
 	start: string;
 	end: string;
 	calendarUrl: string;
+	wholeDay?: boolean | undefined;
 	description?: string | undefined;
 	location?: string | undefined;
 	recurrenceRule?: RecurrenceRuleInput | undefined;
@@ -58,6 +59,7 @@ export const createEventDefinition = {
 			.datetime({ offset: true })
 			.describe("End datetime (ISO 8601)"),
 		calendarUrl: z.string(),
+		wholeDay: z.boolean().optional().describe("Create as a whole-day event"),
 		description: z.string().optional(),
 		location: z.string().optional(),
 		recurrenceRule: recurrenceRuleSchema.optional(),
@@ -78,6 +80,7 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 				summary,
 				start,
 				end,
+				wholeDay,
 				description,
 				location,
 				recurrenceRule,
@@ -86,6 +89,7 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 				summary: summary,
 				start: new Date(start),
 				end: new Date(end),
+				...(wholeDay !== undefined && { wholeDay }),
 				...(description !== undefined && { description }),
 				...(location !== undefined && { location }),
 				...(recurrenceRule !== undefined && {
