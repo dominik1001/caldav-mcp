@@ -1,0 +1,64 @@
+{
+	"manifest_version": "0.3",
+	"name": "caldav-mcp",
+	"display_name": "CalDAV Calendar",
+	"version": "0.8.0",
+	"description": "MCP server for CalDAV calendar operations — list calendars, list, create, update, and delete events.",
+	"author": {
+		"name": "Dominik Grusemann"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/dominik1001/caldav-mcp"
+	},
+	"server": {
+		"type": "node",
+		"entry_point": "dist/index.js",
+		"mcp_config": {
+			"command": "node",
+			"args": ["${__dirname}/dist/index.js"],
+			"env": {
+				"CALDAV_BASE_URL": "${user_config.caldav_base_url}",
+				"CALDAV_USERNAME": "${user_config.caldav_username}",
+				"CALDAV_PASSWORD": "${user_config.caldav_password}"
+			}
+		}
+	},
+	"user_config": {
+		"caldav_base_url": {
+			"type": "string",
+			"title": "CalDAV Server URL",
+			"description": "Base URL of your CalDAV server",
+			"required": true
+		},
+		"caldav_username": {
+			"type": "string",
+			"title": "Username",
+			"description": "Your CalDAV account username or email address",
+			"required": true
+		},
+		"caldav_password": {
+			"type": "string",
+			"title": "Password",
+			"description": "Your CalDAV password or app-specific password",
+			"required": true,
+			"sensitive": true
+		}
+	},
+	"tools": [
+		{
+			"name": "list-calendars",
+			"description": "List all available CalDAV calendars"
+		},
+		{
+			"name": "list-events",
+			"description": "List events in a calendar within a date range"
+		},
+		{ "name": "create-event", "description": "Create a new calendar event" },
+		{
+			"name": "update-event",
+			"description": "Update an existing calendar event"
+		},
+		{ "name": "delete-event", "description": "Delete a calendar event" }
+	]
+}
