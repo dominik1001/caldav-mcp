@@ -141,14 +141,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LEFTHOOK: "0"
-      - name: Set version in server.json
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          jq --arg v "$VERSION" '.packages[0].version = $v | .version = $v' server.json > server.tmp && mv server.tmp server.json
-      - name: Install mcp-publisher
-        run: |
-          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
-      - name: Publish to MCP Registry
-        run: |
-          ./mcp-publisher login github-oidc
-          ./mcp-publisher publish
