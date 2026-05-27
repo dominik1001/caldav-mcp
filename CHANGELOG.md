@@ -1,3 +1,10 @@
+## [0.9.2](https://github.com/dominik1001/caldav-mcp/compare/v0.9.1...v0.9.2) (2026-05-27)
+
+
+### Bug Fixes
+
+* **ci:** skip Claude Code Review on fork PRs ([3695a53](https://github.com/dominik1001/caldav-mcp/commit/3695a5382e2cdd6f9a1401c0df59f6a774333e25))
+
 ## [0.9.1](https://github.com/dominik1001/caldav-mcp/compare/v0.9.0...v0.9.1) (2026-05-27)
 
 
