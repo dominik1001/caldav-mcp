@@ -140,6 +140,7 @@ jobs:
       - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LEFTHOOK: "0"
       - name: Set version in server.json
         run: |
           VERSION=$(node -p "require('./package.json').version")
