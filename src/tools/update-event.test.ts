@@ -59,7 +59,8 @@ describe("registerUpdateEvent", () => {
 
 		const { server, getHandler } = makeServer();
 		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
-		const handler = getHandler()!;
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
 
 		const result = await handler({
 			uid: "event-123",
@@ -92,7 +93,8 @@ describe("registerUpdateEvent", () => {
 
 		const { server, getHandler } = makeServer();
 		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
-		const handler = getHandler()!;
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
 
 		await expect(
 			handler({ uid: "missing", calendarUrl: "/f/test-calendar/" }),
@@ -114,7 +116,8 @@ describe("registerUpdateEvent", () => {
 
 		const { server, getHandler } = makeServer();
 		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
-		const handler = getHandler()!;
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
 
 		await handler({ uid: "event-123", calendarUrl: "/f/test-calendar" });
 
