@@ -1,3 +1,15 @@
+# [0.9.0](https://github.com/dominik1001/caldav-mcp/compare/v0.8.0...v0.9.0) (2026-05-27)
+
+
+### Bug Fixes
+
+* **ci:** disable lefthook during semantic-release commit ([24531f7](https://github.com/dominik1001/caldav-mcp/commit/24531f78ce6549cd55527e08040d267834224a51))
+
+
+### Features
+
+* publish to MCP Registry ([88e7e83](https://github.com/dominik1001/caldav-mcp/commit/88e7e83a9ed12f5cd618fb2ee521e2224af66956))
+
 # [0.8.0](https://github.com/dominik1001/caldav-mcp/compare/v0.7.0...v0.8.0) (2026-05-11)
 
 
