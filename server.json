@@ -1,0 +1,43 @@
+{
+	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+	"name": "io.github.dominik1001/caldav-mcp",
+	"description": "CalDAV calendar operations (list, create, update, delete events) as MCP tools.",
+	"repository": {
+		"url": "https://github.com/dominik1001/caldav-mcp",
+		"source": "github"
+	},
+	"version": "0.8.0",
+	"packages": [
+		{
+			"registryType": "npm",
+			"identifier": "caldav-mcp",
+			"version": "0.8.0",
+			"transport": {
+				"type": "stdio"
+			},
+			"environmentVariables": [
+				{
+					"name": "CALDAV_BASE_URL",
+					"description": "Base URL of the CalDAV server (e.g. https://caldav.example.com)",
+					"isRequired": true,
+					"format": "string",
+					"isSecret": false
+				},
+				{
+					"name": "CALDAV_USERNAME",
+					"description": "Username for CalDAV authentication",
+					"isRequired": true,
+					"format": "string",
+					"isSecret": false
+				},
+				{
+					"name": "CALDAV_PASSWORD",
+					"description": "Password for CalDAV authentication",
+					"isRequired": true,
+					"format": "string",
+					"isSecret": true
+				}
+			]
+		}
+	]
+}
