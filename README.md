@@ -85,6 +85,7 @@ The server supports two transports, selected at startup:
   |---|---|---|
   | `PORT` | `3000` | TCP port to bind. |
   | `LISTEN_ADDR` | `localhost` | Bind address. Set to `0.0.0.0` to listen on all interfaces. |
+  | `MCP_API_KEY` | _(unset)_ | When set, requests must include `Authorization: Bearer <MCP_API_KEY>`; others get `401`. If unset, the endpoint is **unauthenticated** (a warning is logged) — only safe when bound to a trusted network. |
 
 ## Docker
 
@@ -96,10 +97,11 @@ docker run --rm -p 3000:3000 \
   -e CALDAV_BASE_URL=https://your-caldav-server.com/dav \
   -e CALDAV_USERNAME=your-username \
   -e CALDAV_PASSWORD=your-password \
+  -e MCP_API_KEY=your-shared-secret \
   caldav-mcp
 ```
 
-The image binds to `0.0.0.0:3000` and serves `POST /mcp`. The container is not needed for the default stdio setup in [Setup](#setup) above.
+The image binds to `0.0.0.0:3000` and serves `POST /mcp`. Because it listens on all interfaces, set `MCP_API_KEY` so the endpoint requires a bearer token (see [Transports](#transports)). The container is not needed for the default stdio setup in [Setup](#setup) above.
 
 ## Available Tools
 
