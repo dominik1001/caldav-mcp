@@ -82,7 +82,7 @@ describe("registerCreateEvent", () => {
 		expect(passed?.recurrenceRule).toBeUndefined();
 	});
 
-	test("passes wholeDay flag when provided", async () => {
+	test("passes wholeDay flag when true", async () => {
 		const mockClient = {
 			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
 		};
@@ -102,5 +102,48 @@ describe("registerCreateEvent", () => {
 
 		const passed = mockClient.createEvent.mock.calls[0]?.[1];
 		expect(passed?.wholeDay).toBe(true);
+	});
+
+	test("passes wholeDay flag when false", async () => {
+		const mockClient = {
+			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerCreateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			summary: "Timed event",
+			start: "2026-05-12T10:00:00.000Z",
+			end: "2026-05-12T10:30:00.000Z",
+			calendarUrl: "/f/test-calendar/",
+			wholeDay: false,
+		});
+
+		const passed = mockClient.createEvent.mock.calls[0]?.[1];
+		expect(passed?.wholeDay).toBe(false);
+	});
+
+	test("omits wholeDay when not provided", async () => {
+		const mockClient = {
+			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerCreateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			summary: "Timed event",
+			start: "2026-05-12T10:00:00.000Z",
+			end: "2026-05-12T10:30:00.000Z",
+			calendarUrl: "/f/test-calendar/",
+		});
+
+		const passed = mockClient.createEvent.mock.calls[0]?.[1];
+		expect(passed).not.toHaveProperty("wholeDay");
 	});
 });

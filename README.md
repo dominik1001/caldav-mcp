@@ -94,14 +94,14 @@ Returns:
 
 ### create-event
 
-Creates an event in the calendar specified by its URL. For a one-day full-day event, set `wholeDay` to true and set `start` and `end` to the same calendar day.
+Creates an event in the calendar specified by its URL. For all-day events, set `wholeDay` to true. For a single-day all-day event, use `start` and `end` datetimes on the same calendar date; they do not need to be identical timestamps.
 
 Parameters:
 - `summary`: string
 - `start`: string — Start datetime (ISO 8601)
 - `end`: string — End datetime (ISO 8601)
-- `calendarUrl`: string
 - `wholeDay`: boolean (optional) — Create as a whole-day event
+- `calendarUrl`: string
 - `description`: string (optional)
 - `location`: string (optional)
 - `recurrenceRule`: object (optional)

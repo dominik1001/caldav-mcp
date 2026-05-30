@@ -16,8 +16,8 @@ type CreateEventInput = {
 	summary: string;
 	start: string;
 	end: string;
-	calendarUrl: string;
 	wholeDay?: boolean | undefined;
+	calendarUrl: string;
 	description?: string | undefined;
 	location?: string | undefined;
 	recurrenceRule?: RecurrenceRuleInput | undefined;
@@ -48,7 +48,7 @@ const recurrenceRuleSchema = z.object({
 export const createEventDefinition = {
 	name: "create-event",
 	description:
-		"Creates an event in the calendar specified by its URL. For a one-day full-day event, set `wholeDay` to true and set `start` and `end` to the same calendar day.",
+		"Creates an event in the calendar specified by its URL. For all-day events, set `wholeDay` to true. For a single-day all-day event, use `start` and `end` datetimes on the same calendar date; they do not need to be identical timestamps.",
 	inputSchema: {
 		summary: z.string(),
 		start: z
@@ -59,8 +59,8 @@ export const createEventDefinition = {
 			.string()
 			.datetime({ offset: true })
 			.describe("End datetime (ISO 8601)"),
-		calendarUrl: z.string(),
 		wholeDay: z.boolean().optional().describe("Create as a whole-day event"),
+		calendarUrl: z.string(),
 		description: z.string().optional(),
 		location: z.string().optional(),
 		recurrenceRule: recurrenceRuleSchema.optional(),
