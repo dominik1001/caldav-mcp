@@ -9,6 +9,7 @@ type ToolHandler = (params: {
 	summary?: string;
 	start?: string;
 	end?: string;
+	wholeDay?: boolean;
 	description?: string;
 	location?: string;
 	recurrenceRule?: {
@@ -153,5 +154,31 @@ describe("registerUpdateEvent", () => {
 		expect(passed?.recurrenceRule?.until).toBeInstanceOf(Date);
 		expect(passed?.recurrenceRule?.until?.toISOString()).toBe(untilIso);
 		expect(passed?.recurrenceRule?.freq).toBe("DAILY");
+	});
+
+	test("updates wholeDay flag when provided", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "event-123",
+				href: existingEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			wholeDay: true,
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.wholeDay).toBe(true);
 	});
 });
