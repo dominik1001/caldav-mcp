@@ -62,6 +62,11 @@ async function main() {
 		"list-calendars",
 		"list-events",
 		"update-event",
+		"create-todo",
+		"list-todos",
+		"update-todo",
+		"complete-todo",
+		"delete-todo",
 	];
 	for (const name of expected) {
 		if (!toolNames.includes(name)) throw new Error(`Missing tool: ${name}`);
@@ -73,6 +78,7 @@ async function main() {
 	const calendars = JSON.parse(calendarsRaw) as Array<{
 		displayName?: string;
 		url: string;
+		supportedComponents?: string[];
 	}>;
 	if (calendars.length === 0) throw new Error("No calendars returned");
 	const calendarUrl = calendars[0].url;
@@ -176,6 +182,101 @@ async function main() {
 		}),
 	);
 	log("deleted recurring event");
+
+	// VTODO round-trip: create → list → complete → update → delete on a
+	// task-capable collection. Mailbox.org exposes a separate VTODO calendar;
+	// if the account has none, skip rather than fail (events already verified).
+	const todoCalendar = calendars.find((c) =>
+		c.supportedComponents?.includes("VTODO"),
+	);
+	if (!todoCalendar) {
+		log("no VTODO-capable calendar found, skipping todo round-trip");
+	} else {
+		const todoCalendarUrl = todoCalendar.url;
+		log("using todo calendar", todoCalendar.displayName ?? todoCalendarUrl);
+
+		const todoSummary = `caldav-mcp smoke todo ${new Date().toISOString()}`;
+		const todoUid = unwrapText(
+			await client.callTool({
+				name: "create-todo",
+				arguments: {
+					summary: todoSummary,
+					calendarUrl: todoCalendarUrl,
+					due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+				},
+			}),
+		);
+		log("created todo", todoUid);
+
+		const listedTodos = JSON.parse(
+			unwrapText(
+				await client.callTool({
+					name: "list-todos",
+					arguments: { calendarUrl: todoCalendarUrl, status: "all" },
+				}),
+			),
+		) as { todos: Array<{ uid: string; summary: string; status: string }> };
+		const foundTodo = listedTodos.todos.find((t) => t.uid === todoUid);
+		if (!foundTodo)
+			throw new Error(`Created todo ${todoUid} not found in list-todos`);
+		if (foundTodo.summary !== todoSummary)
+			throw new Error(
+				`Todo summary mismatch: ${foundTodo.summary} !== ${todoSummary}`,
+			);
+		log("listed todo", { uid: foundTodo.uid, status: foundTodo.status });
+
+		unwrapText(
+			await client.callTool({
+				name: "complete-todo",
+				arguments: { uid: todoUid, calendarUrl: todoCalendarUrl },
+			}),
+		);
+		const completed = JSON.parse(
+			unwrapText(
+				await client.callTool({
+					name: "list-todos",
+					arguments: { calendarUrl: todoCalendarUrl, status: "completed" },
+				}),
+			),
+		) as { todos: Array<{ uid: string; status: string }> };
+		if (
+			!completed.todos.some(
+				(t) => t.uid === todoUid && t.status === "COMPLETED",
+			)
+		)
+			throw new Error(`Todo ${todoUid} not COMPLETED after complete-todo`);
+		log("completed todo", todoUid);
+
+		unwrapText(
+			await client.callTool({
+				name: "update-todo",
+				arguments: {
+					uid: todoUid,
+					calendarUrl: todoCalendarUrl,
+					summary: `${todoSummary} (updated)`,
+				},
+			}),
+		);
+		log("updated todo", todoUid);
+
+		unwrapText(
+			await client.callTool({
+				name: "delete-todo",
+				arguments: { uid: todoUid, calendarUrl: todoCalendarUrl },
+			}),
+		);
+		const afterTodos = JSON.parse(
+			unwrapText(
+				await client.callTool({
+					name: "list-todos",
+					arguments: { calendarUrl: todoCalendarUrl, status: "all" },
+				}),
+			),
+		) as { todos: Array<{ uid: string }> };
+		if (afterTodos.todos.some((t) => t.uid === todoUid))
+			throw new Error(`Todo ${todoUid} still present after delete`);
+		log("verified todo deletion");
+	}
 
 	await client.close();
 	console.log("\n✅ smoke test passed");
