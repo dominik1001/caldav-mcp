@@ -89,4 +89,38 @@ describe("registerUpdateTodo", () => {
 		).rejects.toThrow("Todo not found: missing");
 		expect(mockClient.updateTodo).not.toHaveBeenCalled();
 	});
+
+	test("preserves the existing todo intact when no mutating fields are given", async () => {
+		const existing: Todo = {
+			...existingTodo,
+			due: new Date("2026-09-01T00:00:00.000Z"),
+			description: "keep me",
+		};
+		const mockClient = {
+			getTodosByHref: vi.fn().mockResolvedValue([existing]),
+			updateTodo: vi.fn().mockResolvedValue({
+				uid: "todo-123",
+				href: existing.href,
+				etag: '"new"',
+				newCtag: "",
+			}),
+		};
+		const { server, getHandler } = makeServer();
+		registerUpdateTodo(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		const result = await handler({ uid: "todo-123", calendarUrl: "/f/tasks/" });
+
+		expect(result.content[0].text).toBe("todo-123");
+		const passed = mockClient.updateTodo.mock.calls[0]?.[1];
+		expect(passed).toMatchObject({
+			uid: "todo-123",
+			etag: '"abc123"',
+			summary: "Original",
+			status: "NEEDS-ACTION",
+			description: "keep me",
+		});
+		expect(passed.due).toBe(existing.due);
+	});
 });

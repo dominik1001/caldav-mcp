@@ -63,6 +63,25 @@ describe("compareTodos", () => {
 		expect(sorted).toEqual(["b", "a", "c", "d", "e"]);
 	});
 
+	test("sortOrder wins over due when both are present", () => {
+		// a has the earlier sortOrder but the later due; sortOrder must win,
+		// proving precedence and not a due-first regression.
+		const a = todo({
+			uid: "a",
+			summary: "A",
+			sortOrder: 1,
+			due: new Date("2026-12-01"),
+		});
+		const b = todo({
+			uid: "b",
+			summary: "B",
+			sortOrder: 2,
+			due: new Date("2026-01-01"),
+		});
+		const sorted = [b, a].sort(compareTodos).map((t) => t.uid);
+		expect(sorted).toEqual(["a", "b"]);
+	});
+
 	test("undated tasks sort after dated ones; summary breaks final tie", () => {
 		const x = todo({ uid: "x", summary: "Zebra" });
 		const y = todo({ uid: "y", summary: "Apple" });

@@ -42,4 +42,20 @@ describe("registerDeleteTodo", () => {
 		);
 		expect(result.content[0].text).toBe("Todo deleted");
 	});
+
+	test("propagates a getETag failure without attempting the delete", async () => {
+		const mockClient = {
+			getETag: vi.fn().mockRejectedValue(new Error("404 Not Found")),
+			deleteTodo: vi.fn(),
+		};
+		const { server, getHandler } = makeServer();
+		registerDeleteTodo(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await expect(
+			handler({ uid: "missing", calendarUrl: "/f/tasks" }),
+		).rejects.toThrow("404 Not Found");
+		expect(mockClient.deleteTodo).not.toHaveBeenCalled();
+	});
 });
