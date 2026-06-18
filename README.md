@@ -159,8 +159,8 @@ List tasks (VTODOs) in the calendar specified by its URL. By default returns onl
 Parameters:
 - `calendarUrl`: string
 - `status`: enum (`open` | `all` | `completed` | `NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional) — Filter by status. `open` (default) = NEEDS-ACTION + IN-PROCESS; `all`; `completed`; or an exact status.
-- `due_before`: string (optional) — Only tasks with a due date at or before this (ISO 8601)
-- `due_after`: string (optional) — Only tasks with a due date at or after this (ISO 8601)
+- `due_before`: string (optional) — Only tasks with a due date at or before this (ISO 8601). Undated tasks are excluded when a due window is set.
+- `due_after`: string (optional) — Only tasks with a due date at or after this (ISO 8601). Undated tasks are excluded when a due window is set.
 - `limit`: number (optional) — Max tasks to return (default 50)
 - `offset`: number (optional) — Tasks to skip (default 0)
 

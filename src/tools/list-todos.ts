@@ -1,15 +1,18 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, Todo } from "ts-caldav";
 import { z } from "zod";
+import { todoStatusSchema } from "./create-todo.js";
 
+type TodoStatus = z.infer<typeof todoStatusSchema>;
+
+// `open`/`all`/`completed` are filter keywords; the four raw statuses allow an
+// exact-status query. The raw values come from todoStatusSchema so adding a new
+// status stays in sync with create/update instead of silently diverging.
 const statusFilterSchema = z.enum([
 	"open",
 	"all",
 	"completed",
-	"NEEDS-ACTION",
-	"COMPLETED",
-	"IN-PROCESS",
-	"CANCELLED",
+	...todoStatusSchema.options,
 ]);
 
 type StatusFilter = z.infer<typeof statusFilterSchema>;
@@ -26,16 +29,17 @@ type ListTodosInput = {
 const OPEN_STATUSES = ["NEEDS-ACTION", "IN-PROCESS"];
 
 /** A VTODO without an explicit STATUS is treated as NEEDS-ACTION (RFC 5545). */
-function statusOf(t: Todo): string {
+function statusOf(t: Todo): TodoStatus {
 	return t.status ?? "NEEDS-ACTION";
 }
 
 /**
  * Sort order: `sortOrder` ascending (a user's explicit drag-reorder intent;
  * missing values sort last), then `due` ascending (undated tasks last), then
- * `summary`. When `sortOrder` is uniform/absent the comparison falls through to
- * the due date, so the same rule serves both "I arranged these" and "show me by
- * deadline" without a mode flag.
+ * `summary`. When every task shares the same `sortOrder` (typically none set,
+ * so all compare equal) the order falls through to the due date, so the same
+ * rule serves both "I arranged these" and "show me by deadline" without a mode
+ * flag.
  */
 export function compareTodos(a: Todo, b: Todo): number {
 	const soA = a.sortOrder ?? Number.POSITIVE_INFINITY;
@@ -62,14 +66,28 @@ export const listTodosDefinition = {
 			.string()
 			.datetime({ offset: true })
 			.optional()
-			.describe("Only tasks with a due date at or before this (ISO 8601)"),
+			.describe(
+				"Only tasks with a due date at or before this (ISO 8601). Undated tasks are excluded when a due window is set.",
+			),
 		due_after: z
 			.string()
 			.datetime({ offset: true })
 			.optional()
-			.describe("Only tasks with a due date at or after this (ISO 8601)"),
-		limit: z.number().optional().describe("Max tasks to return (default 50)"),
-		offset: z.number().optional().describe("Tasks to skip (default 0)"),
+			.describe(
+				"Only tasks with a due date at or after this (ISO 8601). Undated tasks are excluded when a due window is set.",
+			),
+		limit: z
+			.number()
+			.int()
+			.positive()
+			.optional()
+			.describe("Max tasks to return (default 50)"),
+		offset: z
+			.number()
+			.int()
+			.nonnegative()
+			.optional()
+			.describe("Tasks to skip (default 0)"),
 	},
 	returns:
 		"An object `{ todos, total, limit, offset }` where `total` is the count before pagination. Each todo has `uid`, `summary`, `status`, and optionally `due`, `start`, `completed`, `description`, `location`.",
