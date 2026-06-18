@@ -184,7 +184,7 @@ async function main() {
 	log("deleted recurring event");
 
 	// VTODO round-trip: create → list → complete → update → delete on a
-	// task-capable collection. Mailbox.org exposes a separate VTODO calendar;
+	// task-capable collection. Tasks often live in a separate VTODO calendar;
 	// if the account has none, skip rather than fail (events already verified).
 	const todoCalendar = calendars.find((c) =>
 		c.supportedComponents?.includes("VTODO"),
