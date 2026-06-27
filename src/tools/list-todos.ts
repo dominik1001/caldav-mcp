@@ -1,9 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, Todo } from "ts-caldav";
 import { z } from "zod";
-import { todoStatusSchema } from "./create-todo.js";
-
-type TodoStatus = z.infer<typeof todoStatusSchema>;
+import { type TodoStatus, todoStatusSchema } from "./todo-status.js";
 
 // `open`/`all`/`completed` are filter keywords; the four raw statuses allow an
 // exact-status query. The raw values come from todoStatusSchema so adding a new

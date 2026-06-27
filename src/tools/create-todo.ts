@@ -1,15 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
-
-export const todoStatusSchema = z.enum([
-	"NEEDS-ACTION",
-	"COMPLETED",
-	"IN-PROCESS",
-	"CANCELLED",
-]);
-
-type TodoStatus = z.infer<typeof todoStatusSchema>;
+import { type TodoStatus, todoStatusSchema } from "./todo-status.js";
 
 type CreateTodoInput = {
 	summary: string;

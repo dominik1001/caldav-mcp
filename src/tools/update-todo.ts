@@ -2,9 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
 import { hrefFor } from "./caldav-href.js";
-import { todoStatusSchema } from "./create-todo.js";
-
-type TodoStatus = z.infer<typeof todoStatusSchema>;
+import { type TodoStatus, todoStatusSchema } from "./todo-status.js";
 
 type UpdateTodoInput = {
 	uid: string;
