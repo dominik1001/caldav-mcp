@@ -123,4 +123,93 @@ describe("registerUpdateTodo", () => {
 		});
 		expect(passed.due).toBe(existing.due);
 	});
+
+	test("stamps a completed timestamp when status transitions to COMPLETED", async () => {
+		const mockClient = {
+			getTodosByHref: vi.fn().mockResolvedValue([existingTodo]),
+			updateTodo: vi.fn().mockResolvedValue({
+				uid: "todo-123",
+				href: existingTodo.href,
+				etag: '"new"',
+				newCtag: "",
+			}),
+		};
+		const { server, getHandler } = makeServer();
+		registerUpdateTodo(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "todo-123",
+			calendarUrl: "/f/tasks/",
+			status: "COMPLETED",
+		});
+
+		const passed = mockClient.updateTodo.mock.calls[0]?.[1];
+		expect(passed.status).toBe("COMPLETED");
+		expect(passed.completed).toBeInstanceOf(Date);
+	});
+
+	test("preserves the original completion time when an already-done task is re-completed", async () => {
+		const completedAt = new Date("2026-01-02T03:04:05.000Z");
+		const existing: Todo = {
+			...existingTodo,
+			status: "COMPLETED",
+			completed: completedAt,
+		};
+		const mockClient = {
+			getTodosByHref: vi.fn().mockResolvedValue([existing]),
+			updateTodo: vi.fn().mockResolvedValue({
+				uid: "todo-123",
+				href: existing.href,
+				etag: '"new"',
+				newCtag: "",
+			}),
+		};
+		const { server, getHandler } = makeServer();
+		registerUpdateTodo(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "todo-123",
+			calendarUrl: "/f/tasks/",
+			summary: "Edited after completion",
+			status: "COMPLETED",
+		});
+
+		const passed = mockClient.updateTodo.mock.calls[0]?.[1];
+		expect(passed.completed).toBe(completedAt);
+	});
+
+	test("clears the completed timestamp when status transitions away from COMPLETED", async () => {
+		const existing: Todo = {
+			...existingTodo,
+			status: "COMPLETED",
+			completed: new Date("2026-01-02T03:04:05.000Z"),
+		};
+		const mockClient = {
+			getTodosByHref: vi.fn().mockResolvedValue([existing]),
+			updateTodo: vi.fn().mockResolvedValue({
+				uid: "todo-123",
+				href: existing.href,
+				etag: '"new"',
+				newCtag: "",
+			}),
+		};
+		const { server, getHandler } = makeServer();
+		registerUpdateTodo(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "todo-123",
+			calendarUrl: "/f/tasks/",
+			status: "NEEDS-ACTION",
+		});
+
+		const passed = mockClient.updateTodo.mock.calls[0]?.[1];
+		expect(passed.status).toBe("NEEDS-ACTION");
+		expect(passed.completed).toBeUndefined();
+	});
 });

@@ -59,14 +59,30 @@ export function registerUpdateTodo(client: CalDAVClient, server: McpServer) {
 				throw new Error(`Todo not found: ${uid}`);
 			}
 
+			// RFC 5545: a COMPLETED VTODO carries a COMPLETED timestamp. Keep status
+			// and that timestamp consistent so updating status here can't leave the
+			// task in the RFC-incomplete state complete-todo guards against. An
+			// existing completion time is preserved (completion happened once);
+			// transitioning away drops it. `completed` is pulled out of `existing`
+			// so the cleared case omits the property entirely rather than setting it
+			// undefined (which exactOptionalPropertyTypes forbids).
+			const { completed: priorCompleted, ...base } = existing;
+			const completed =
+				status === undefined
+					? priorCompleted
+					: status === "COMPLETED"
+						? (priorCompleted ?? new Date())
+						: undefined;
+
 			const updated = await client.updateTodo(calendarUrl, {
-				...existing,
+				...base,
 				...(summary !== undefined && { summary }),
 				...(due !== undefined && { due: new Date(due) }),
 				...(start !== undefined && { start: new Date(start) }),
 				...(description !== undefined && { description }),
 				...(location !== undefined && { location }),
 				...(status !== undefined && { status }),
+				...(completed !== undefined && { completed }),
 			});
 
 			return {
