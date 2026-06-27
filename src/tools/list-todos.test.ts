@@ -1,7 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, Todo } from "ts-caldav";
 import { describe, expect, test, vi } from "vitest";
-import { compareTodos, registerListTodos } from "./list-todos.js";
+import {
+	compareTodos,
+	listTodosDefinition,
+	registerListTodos,
+} from "./list-todos.js";
 
 function todo(partial: Partial<Todo> & { uid: string; summary: string }): Todo {
 	return {
@@ -112,18 +116,26 @@ describe("registerListTodos", () => {
 		]);
 	});
 
-	test("status=completed returns only completed", async () => {
+	test("status=COMPLETED returns only completed", async () => {
 		const { handler } = setup(mixed);
 		const out = parse(
-			await handler({ calendarUrl: "/f/tasks/", status: "completed" }),
+			await handler({ calendarUrl: "/f/tasks/", status: "COMPLETED" }),
 		);
 		expect(out.todos.map((t) => t.uid)).toEqual(["done"]);
 	});
 
-	test("status=all returns everything", async () => {
+	test("an exact status filter matches only that status", async () => {
 		const { handler } = setup(mixed);
 		const out = parse(
-			await handler({ calendarUrl: "/f/tasks/", status: "all" }),
+			await handler({ calendarUrl: "/f/tasks/", status: "CANCELLED" }),
+		);
+		expect(out.todos.map((t) => t.uid)).toEqual(["cancel"]);
+	});
+
+	test("status=ALL returns everything", async () => {
+		const { handler } = setup(mixed);
+		const out = parse(
+			await handler({ calendarUrl: "/f/tasks/", status: "ALL" }),
 		);
 		expect(out.total).toBe(5);
 	});
@@ -142,7 +154,7 @@ describe("registerListTodos", () => {
 		const out = parse(
 			await handler({
 				calendarUrl: "/f/tasks/",
-				status: "all",
+				status: "ALL",
 				due_after: "2026-06-01T00:00:00.000Z",
 				due_before: "2026-06-30T00:00:00.000Z",
 			}),
@@ -165,5 +177,25 @@ describe("registerListTodos", () => {
 		);
 		expect(out.todos.map((t) => t.uid)).toEqual(["t2", "t3"]);
 		expect(out).toMatchObject({ total: 5, limit: 2, offset: 2 });
+	});
+});
+
+describe("listTodosDefinition.inputSchema", () => {
+	const { status, limit } = listTodosDefinition.inputSchema;
+
+	test("limit is bounded to an upper cap", () => {
+		expect(limit.safeParse(500).success).toBe(true);
+		expect(limit.safeParse(501).success).toBe(false);
+	});
+
+	test("status accepts the keywords and raw statuses but not lowercase aliases", () => {
+		for (const ok of ["OPEN", "ALL", "COMPLETED", "NEEDS-ACTION"]) {
+			expect(status.safeParse(ok).success).toBe(true);
+		}
+		// `completed`/`open` were redundant lowercase aliases; only the raw status
+		// and the OPEN/ALL keywords remain.
+		for (const bad of ["completed", "open", "all"]) {
+			expect(status.safeParse(bad).success).toBe(false);
+		}
 	});
 });

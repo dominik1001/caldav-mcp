@@ -3,15 +3,12 @@ import type { CalDAVClient, Todo } from "ts-caldav";
 import { z } from "zod";
 import { type TodoStatus, todoStatusSchema } from "./todo-status.js";
 
-// `open`/`all`/`completed` are filter keywords; the four raw statuses allow an
-// exact-status query. The raw values come from todoStatusSchema so adding a new
-// status stays in sync with create/update instead of silently diverging.
-const statusFilterSchema = z.enum([
-	"open",
-	"all",
-	"completed",
-	...todoStatusSchema.options,
-]);
+// `OPEN`/`ALL` are filter keywords expressing sets no single status can (a union
+// and "no filter"); the four raw statuses allow an exact-status query. The raw
+// values come from todoStatusSchema so adding a new status stays in sync with
+// create/update instead of silently diverging. A `COMPLETED` query goes through
+// the raw status — no separate `completed` keyword, which would just duplicate it.
+const statusFilterSchema = z.enum(["OPEN", "ALL", ...todoStatusSchema.options]);
 
 type StatusFilter = z.infer<typeof statusFilterSchema>;
 
@@ -52,13 +49,13 @@ export function compareTodos(a: Todo, b: Todo): number {
 export const listTodosDefinition = {
 	name: "list-todos",
 	description:
-		"List tasks (VTODOs) in the calendar specified by its URL. By default returns only open tasks (NEEDS-ACTION and IN-PROCESS), sorted by manual order then due date. Use `status` to include completed or all tasks, and `limit`/`offset` to page through long lists.",
+		"List tasks (VTODOs) in the calendar specified by its URL. By default returns only open tasks (NEEDS-ACTION and IN-PROCESS), sorted by manual order then due date. Use `status` to include completed (`COMPLETED`) or all (`ALL`) tasks, and `limit`/`offset` to page through long lists.",
 	inputSchema: {
 		calendarUrl: z.string(),
 		status: statusFilterSchema
 			.optional()
 			.describe(
-				"Filter by status. `open` (default) = NEEDS-ACTION + IN-PROCESS; `all`; `completed`; or an exact status.",
+				"Filter by status. `OPEN` (default) = NEEDS-ACTION + IN-PROCESS; `ALL` = everything; or an exact status (NEEDS-ACTION, COMPLETED, IN-PROCESS, CANCELLED).",
 			),
 		due_before: z
 			.string()
@@ -78,8 +75,9 @@ export const listTodosDefinition = {
 			.number()
 			.int()
 			.positive()
+			.max(500)
 			.optional()
-			.describe("Max tasks to return (default 50)"),
+			.describe("Max tasks to return (default 50, max 500)"),
 		offset: z
 			.number()
 			.int()
@@ -100,7 +98,7 @@ export function registerListTodos(client: CalDAVClient, server: McpServer) {
 		},
 		async (args: ListTodosInput) => {
 			const { calendarUrl } = args;
-			const status = args.status ?? "open";
+			const status = args.status ?? "OPEN";
 			const limit = args.limit ?? 50;
 			const offset = args.offset ?? 0;
 
@@ -117,9 +115,8 @@ export function registerListTodos(client: CalDAVClient, server: McpServer) {
 
 			const matchesStatus = (t: Todo): boolean => {
 				const s = statusOf(t);
-				if (status === "all") return true;
-				if (status === "open") return OPEN_STATUSES.includes(s);
-				if (status === "completed") return s === "COMPLETED";
+				if (status === "ALL") return true;
+				if (status === "OPEN") return OPEN_STATUSES.includes(s);
 				return s === status;
 			};
 

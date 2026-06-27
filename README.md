@@ -154,14 +154,14 @@ Returns:
 
 ### list-todos
 
-List tasks (VTODOs) in the calendar specified by its URL. By default returns only open tasks (NEEDS-ACTION and IN-PROCESS), sorted by manual order then due date. Use `status` to include completed or all tasks, and `limit`/`offset` to page through long lists.
+List tasks (VTODOs) in the calendar specified by its URL. By default returns only open tasks (NEEDS-ACTION and IN-PROCESS), sorted by manual order then due date. Use `status` to include completed (`COMPLETED`) or all (`ALL`) tasks, and `limit`/`offset` to page through long lists.
 
 Parameters:
 - `calendarUrl`: string
-- `status`: enum (`open` | `all` | `completed` | `NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional) — Filter by status. `open` (default) = NEEDS-ACTION + IN-PROCESS; `all`; `completed`; or an exact status.
+- `status`: enum (`OPEN` | `ALL` | `NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional) — Filter by status. `OPEN` (default) = NEEDS-ACTION + IN-PROCESS; `ALL` = everything; or an exact status (NEEDS-ACTION, COMPLETED, IN-PROCESS, CANCELLED).
 - `due_before`: string (optional) — Only tasks with a due date at or before this (ISO 8601). Undated tasks are excluded when a due window is set.
 - `due_after`: string (optional) — Only tasks with a due date at or after this (ISO 8601). Undated tasks are excluded when a due window is set.
-- `limit`: number (optional) — Max tasks to return (default 50)
+- `limit`: number (optional) — Max tasks to return (default 50, max 500)
 - `offset`: number (optional) — Tasks to skip (default 0)
 
 Returns:

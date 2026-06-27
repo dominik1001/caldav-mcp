@@ -212,7 +212,7 @@ async function main() {
 			unwrapText(
 				await client.callTool({
 					name: "list-todos",
-					arguments: { calendarUrl: todoCalendarUrl, status: "all" },
+					arguments: { calendarUrl: todoCalendarUrl, status: "ALL" },
 				}),
 			),
 		) as { todos: Array<{ uid: string; summary: string; status: string }> };
@@ -235,7 +235,7 @@ async function main() {
 			unwrapText(
 				await client.callTool({
 					name: "list-todos",
-					arguments: { calendarUrl: todoCalendarUrl, status: "completed" },
+					arguments: { calendarUrl: todoCalendarUrl, status: "COMPLETED" },
 				}),
 			),
 		) as { todos: Array<{ uid: string; status: string }> };
@@ -269,7 +269,7 @@ async function main() {
 			unwrapText(
 				await client.callTool({
 					name: "list-todos",
-					arguments: { calendarUrl: todoCalendarUrl, status: "all" },
+					arguments: { calendarUrl: todoCalendarUrl, status: "ALL" },
 				}),
 			),
 		) as { todos: Array<{ uid: string }> };
