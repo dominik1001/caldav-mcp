@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, RecurrenceRule } from "ts-caldav";
 import { z } from "zod";
+import { hrefFor } from "./caldav-href.js";
 
 type RecurrenceRuleInput = {
 	freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | undefined;
@@ -91,8 +92,7 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				recurrenceRule,
 			} = args;
 
-			const base = calendarUrl.endsWith("/") ? calendarUrl : `${calendarUrl}/`;
-			const href = `${base}${uid}.ics`;
+			const href = hrefFor(calendarUrl, uid);
 
 			const [existing] = await client.getEventsByHref(calendarUrl, [href]);
 			if (!existing) {
