@@ -11,8 +11,9 @@ export const listCalendarsDefinition = {
 export async function registerListCalendars(
 	client: CalDAVClient,
 	server: McpServer,
+	prefetched?: Awaited<ReturnType<CalDAVClient["getCalendars"]>>,
 ) {
-	const calendars = await client.getCalendars();
+	const calendars = prefetched ?? (await client.getCalendars());
 
 	server.registerTool(
 		listCalendarsDefinition.name,
