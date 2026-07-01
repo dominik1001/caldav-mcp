@@ -151,6 +151,76 @@ Parameters:
 
 Returns:
 - Confirmation message when the event is successfully deleted
+
+### list-todos
+
+List tasks (VTODOs) in the calendar specified by its URL. By default returns only open tasks (NEEDS-ACTION and IN-PROCESS), sorted by manual order then due date. Use `status` to include completed (`COMPLETED`) or all (`ALL`) tasks, and `limit`/`offset` to page through long lists.
+
+Parameters:
+- `calendarUrl`: string
+- `status`: enum (`OPEN` | `ALL` | `NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional) — Filter by status. `OPEN` (default) = NEEDS-ACTION + IN-PROCESS; `ALL` = everything; or an exact status (NEEDS-ACTION, COMPLETED, IN-PROCESS, CANCELLED).
+- `due_before`: string (optional) — Only tasks with a due date at or before this (ISO 8601). Undated tasks are excluded when a due window is set.
+- `due_after`: string (optional) — Only tasks with a due date at or after this (ISO 8601). Undated tasks are excluded when a due window is set.
+- `limit`: number (optional) — Max tasks to return (default 50, max 500)
+- `offset`: number (optional) — Tasks to skip (default 0)
+
+Returns:
+- An object `{ todos, total, limit, offset }` where `total` is the count before pagination. Each todo has `uid`, `summary`, `status`, and optionally `due`, `start`, `completed`, `description`, `location`.
+
+### create-todo
+
+Creates a task (VTODO) in the calendar specified by its URL. Only `summary` is required; a task may have no dates. Use `due` for a deadline and `start` for when work should begin.
+
+Parameters:
+- `summary`: string
+- `calendarUrl`: string
+- `due`: string (optional) — Due datetime (ISO 8601)
+- `start`: string (optional) — Start datetime (ISO 8601)
+- `description`: string (optional)
+- `location`: string (optional)
+- `status`: enum (`NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional) — Defaults to NEEDS-ACTION when omitted
+
+Returns:
+- The unique ID of the created todo
+
+### update-todo
+
+Updates an existing task (VTODO) in the calendar specified by its URL. Only provided fields are changed. To mark a task done, prefer the `complete-todo` tool.
+
+Parameters:
+- `uid`: string — Unique identifier of the todo to update (from list-todos)
+- `calendarUrl`: string
+- `summary`: string (optional)
+- `due`: string (optional)
+- `start`: string (optional)
+- `description`: string (optional)
+- `location`: string (optional)
+- `status`: enum (`NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional)
+
+Returns:
+- The unique ID of the updated todo
+
+### complete-todo
+
+Marks a task (VTODO) as done. Sets its status to COMPLETED and records the completion time.
+
+Parameters:
+- `uid`: string — Unique identifier of the todo to complete (from list-todos)
+- `calendarUrl`: string
+
+Returns:
+- The unique ID of the completed todo
+
+### delete-todo
+
+Deletes a task (VTODO) in the calendar specified by its URL
+
+Parameters:
+- `uid`: string — Unique identifier of the todo to delete (from list-todos)
+- `calendarUrl`: string
+
+Returns:
+- Confirmation message when the todo is successfully deleted
 <!-- TOOLS:END -->
 
 ## License
