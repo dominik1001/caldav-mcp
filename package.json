@@ -24,6 +24,7 @@
 		"docs": "tsx scripts/gen-tool-docs.ts",
 		"docs:check": "tsx scripts/gen-tool-docs.ts --check",
 		"validate": "npm run check && npm test && npm run knip && npm run docs:check && npm run build",
+		"pack:mcpb": "npm run build && rm -rf .mcpb-stage && mkdir .mcpb-stage && cp -r dist package.json package-lock.json .mcpb-stage/ && cp mcpb-manifest.json .mcpb-stage/manifest.json && npm ci --omit=dev --ignore-scripts --silent --prefix .mcpb-stage && (cd .mcpb-stage && npx mcpb pack . ../dist/caldav-mcp.mcpb) && rm -rf .mcpb-stage",
 		"smoke": "npm run build && tsx --env-file=.env scripts/smoke.ts",
 		"smoke:agent": "npm run build && bash scripts/smoke-agent.sh",
 		"watch": "tsc --watch",
@@ -50,6 +51,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"@anthropic-ai/mcpb": "^2.1.2",
 		"@biomejs/biome": "^2.4.14",
 		"@commitlint/cli": "^21.0.0",
 		"@commitlint/config-conventional": "^21.0.0",
