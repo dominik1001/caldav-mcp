@@ -13,7 +13,10 @@ on:
 jobs:
   claude-review:
     # Skip fork PRs — OIDC auth unavailable. Remove once anthropics/claude-code-action#939 lands.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Skip Dependabot PRs — automated dependency bumps don't need a code review.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
