@@ -183,6 +183,67 @@ async function main() {
 	);
 	log("deleted recurring event");
 
+	// Whole-day event round trip with a non-UTC offset input. Regression test
+	// for a bug where `new Date(iso)` + downstream UTC-truncation shifted the
+	// stored calendar date back by one day for any offset east of UTC — see
+	// toWholeDayDate() in src/tools/whole-day-date.ts and its unit tests for
+	// the conversion logic; here we verify the fix holds through ts-caldav's
+	// real serialization and a real CalDAV server's storage/parsing.
+	const wholeDayDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+	const wholeDayDateStr = wholeDayDate.toISOString().slice(0, 10);
+	const wholeDayIso = `${wholeDayDateStr}T00:00:00+09:00`;
+	const wholeDaySummary = `caldav-mcp smoke whole-day ${wholeDayDateStr}`;
+	const wholeDayUid = unwrapText(
+		await client.callTool({
+			name: "create-event",
+			arguments: {
+				summary: wholeDaySummary,
+				start: wholeDayIso,
+				end: wholeDayIso,
+				wholeDay: true,
+				calendarUrl,
+			},
+		}),
+	);
+	log("created whole-day event", { uid: wholeDayUid, input: wholeDayIso });
+
+	const wholeDayWindowStart = new Date(
+		wholeDayDate.getTime() - 24 * 60 * 60 * 1000,
+	);
+	const wholeDayWindowEnd = new Date(
+		wholeDayDate.getTime() + 2 * 24 * 60 * 60 * 1000,
+	);
+	const wholeDayListed = JSON.parse(
+		unwrapText(
+			await client.callTool({
+				name: "list-events",
+				arguments: {
+					start: wholeDayWindowStart.toISOString(),
+					end: wholeDayWindowEnd.toISOString(),
+					calendarUrl,
+				},
+			}),
+		),
+	) as Array<{ uid: string; start: string }>;
+	const foundWholeDay = wholeDayListed.find((e) => e.uid === wholeDayUid);
+	if (!foundWholeDay)
+		throw new Error(`Created whole-day event ${wholeDayUid} not found`);
+	const storedDateStr = foundWholeDay.start.slice(0, 10);
+	if (storedDateStr !== wholeDayDateStr) {
+		throw new Error(
+			`Whole-day event date shifted: expected ${wholeDayDateStr}, got ${storedDateStr} (input ${wholeDayIso})`,
+		);
+	}
+	log("verified whole-day event date", storedDateStr);
+
+	unwrapText(
+		await client.callTool({
+			name: "delete-event",
+			arguments: { uid: wholeDayUid, calendarUrl },
+		}),
+	);
+	log("deleted whole-day event");
+
 	// VTODO round-trip: create → list → complete → update → delete on a
 	// task-capable collection. Tasks often live in a separate VTODO calendar;
 	// if the account has none, skip rather than fail (events already verified).
