@@ -1,3 +1,23 @@
+# [0.10.0](https://github.com/dominik1001/caldav-mcp/compare/v0.9.2...v0.10.0) (2026-07-01)
+
+
+### Bug Fixes
+
+* **delete-todo:** report a missing task with the friendly not-found error ([70affe1](https://github.com/dominik1001/caldav-mcp/commit/70affe1c36b8e160d75759370fc5777bcc27f192))
+* **list-todos:** bound limit/offset, reuse status enum, type statusOf ([07ae914](https://github.com/dominik1001/caldav-mcp/commit/07ae914a2f6b0a45728ff3e521255b54f9bf38a3))
+* **update-todo:** keep COMPLETED status and timestamp in sync ([d73b54a](https://github.com/dominik1001/caldav-mcp/commit/d73b54a9d9ee4186a38ddf78063bc736013e09a5))
+
+
+### Features
+
+* add complete-todo tool ([dec69f8](https://github.com/dominik1001/caldav-mcp/commit/dec69f86f0611154bf9e31c38aaf8d105aaef54a))
+* add create-todo tool ([7d4545c](https://github.com/dominik1001/caldav-mcp/commit/7d4545c2da7192dad2835337083f54aa514d943e))
+* add delete-todo tool ([8142a6f](https://github.com/dominik1001/caldav-mcp/commit/8142a6f4849b4c9aed531022947604b9d81382d1))
+* add hrefFor helper for CalDAV object addressing ([ee26cfd](https://github.com/dominik1001/caldav-mcp/commit/ee26cfd7edcfd5f1639779fa391df5b9ff677035))
+* add list-todos tool with status filter, due window, sort and pagination ([f7c99cb](https://github.com/dominik1001/caldav-mcp/commit/f7c99cbec46d0577a70e47e6fdfd9a14d5034c4d))
+* add update-todo tool ([311c5d9](https://github.com/dominik1001/caldav-mcp/commit/311c5d97363424bfd5ba402e4d433191bec843cb))
+* register VTODO tools, generate docs, add smoke coverage ([e9e4a48](https://github.com/dominik1001/caldav-mcp/commit/e9e4a488aac99b4a5526ef39627220fd339b0722))
+
 ## [0.9.2](https://github.com/dominik1001/caldav-mcp/compare/v0.9.1...v0.9.2) (2026-05-27)
 
 

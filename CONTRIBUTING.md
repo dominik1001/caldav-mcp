@@ -122,6 +122,6 @@ Releases are fully automated via semantic-release:
 
 - **Bug reports**: [GitHub Issues](https://github.com/dominik1001/caldav-mcp/issues)
 - **Questions**: [GitHub Discussions](https://github.com/dominik1001/caldav-mcp/discussions)
-- **Security issues**: See SECURITY.md
+- **Security issues**: See [SECURITY.md](SECURITY.md)
 
 Thank you for contributing! 🎉

@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
+import { hrefFor } from "./caldav-href.js";
 
 type DeleteEventInput = {
 	uid: string;
@@ -30,9 +31,7 @@ export function registerDeleteEvent(client: CalDAVClient, server: McpServer) {
 		},
 		async (args: DeleteEventInput) => {
 			const { uid, calendarUrl } = args;
-			const base = calendarUrl.endsWith("/") ? calendarUrl : `${calendarUrl}/`;
-			const href = `${base}${uid}.ics`;
-			const etag = await client.getETag(href);
+			const etag = await client.getETag(hrefFor(calendarUrl, uid));
 			await client.deleteEvent(calendarUrl, uid, etag);
 
 			return {
