@@ -1,10 +1,9 @@
 import type { Event } from "ts-caldav";
 import { describe, expect, test } from "vitest";
 import {
+	expandEvents,
 	occurrencesWithin,
-	replacedOccurrences,
 	toOccurrenceKey,
-	toRRuleString,
 } from "./recurrence.js";
 
 function makeEvent(overrides: Partial<Event> & Pick<Event, "start">): Event {
@@ -20,42 +19,6 @@ function makeEvent(overrides: Partial<Event> & Pick<Event, "start">): Event {
 }
 
 const iso = (dates: Date[]) => dates.map((d) => d.toISOString());
-
-describe("toRRuleString", () => {
-	test("keeps only the parts that are set", () => {
-		expect(toRRuleString({ freq: "WEEKLY", byday: ["TU", "TH"] })).toBe(
-			"FREQ=WEEKLY;BYDAY=TU,TH",
-		);
-	});
-
-	test("translates the numeric WKST that ts-caldav hands over", () => {
-		// ts-caldav stringifies ical.js' weekday number, so Monday arrives as "2".
-		expect(toRRuleString({ freq: "WEEKLY", interval: 4, wkst: "2" })).toBe(
-			"FREQ=WEEKLY;INTERVAL=4;WKST=MO",
-		);
-		expect(toRRuleString({ freq: "WEEKLY", wkst: "1" })).toBe(
-			"FREQ=WEEKLY;WKST=SU",
-		);
-	});
-
-	test("drops a WKST it cannot make sense of", () => {
-		expect(toRRuleString({ freq: "WEEKLY", wkst: "nonsense" })).toBe(
-			"FREQ=WEEKLY",
-		);
-	});
-
-	test("renders UNTIL as a UTC timestamp", () => {
-		expect(
-			toRRuleString({
-				freq: "WEEKLY",
-				interval: 4,
-				wkst: "MO",
-				byday: ["FR"],
-				until: new Date("2027-05-30T12:30:00Z"),
-			}),
-		).toBe("FREQ=WEEKLY;INTERVAL=4;UNTIL=20270530T123000Z;WKST=MO;BYDAY=FR");
-	});
-});
 
 describe("occurrencesWithin", () => {
 	test("returns a single event only when it falls inside the window", () => {
@@ -224,28 +187,6 @@ describe("toOccurrenceKey", () => {
 	});
 });
 
-describe("replacedOccurrences", () => {
-	test("groups the replaced slots by the uid of their series", () => {
-		const master = makeEvent({
-			start: new Date("2026-05-29T12:30:00Z"),
-			recurrenceRule: { freq: "WEEKLY", byday: ["FR"] },
-		});
-		const override = makeEvent({
-			uid: "test-uid",
-			start: new Date("2026-08-21T15:00:00Z"),
-			customFields: { "recurrence-id": "2026-08-21T14:30:00" },
-		});
-
-		const replaced = replacedOccurrences([master, override]);
-		expect(replaced.get("test-uid")).toEqual(new Set(["2026-08-21T14:30:00"]));
-	});
-
-	test("ignores events that replace nothing", () => {
-		const plain = makeEvent({ start: new Date("2026-08-21T12:30:00Z") });
-		expect(replacedOccurrences([plain]).size).toBe(0);
-	});
-});
-
 describe("occurrencesWithin robustness", () => {
 	test("skips the slot an override stands in for", () => {
 		// The master recurs every Friday at 14:30 Berlin time.
@@ -293,5 +234,128 @@ describe("occurrencesWithin robustness", () => {
 				new Date("2026-08-23T22:00:00Z"),
 			),
 		).not.toThrow();
+	});
+});
+
+describe("seeding near the window", () => {
+	// The seed jump skips whole periods. If it landed on the wrong phase, an
+	// interval series would come back on the wrong days rather than not at all,
+	// so these pin the dates and not just the count.
+	test("keeps the phase of a four-weekly series across decades", () => {
+		const event = makeEvent({
+			start: new Date("1990-01-05T12:30:00Z"), // a Friday
+			recurrenceRule: { freq: "WEEKLY", interval: 4, byday: ["FR"] },
+		});
+		// Checked against a full walk from 1990 with no seed jump: the phase lands
+		// on 28 August, not on the 21st. The start is 13:30 Berlin time in winter,
+		// so 36 years later it is still 13:30 there, which is 11:30 UTC in summer.
+		expect(
+			iso(
+				occurrencesWithin(
+					event,
+					new Date("2026-08-23T22:00:00Z"),
+					new Date("2026-08-30T22:00:00Z"),
+				),
+			),
+		).toEqual(["2026-08-28T11:30:00.000Z"]);
+		// The neighbouring week belongs to another phase and must stay empty.
+		expect(
+			occurrencesWithin(
+				event,
+				new Date("2026-08-16T22:00:00Z"),
+				new Date("2026-08-23T22:00:00Z"),
+			),
+		).toEqual([]);
+	});
+
+	test("does not skip ahead of a series bounded by COUNT", () => {
+		const event = makeEvent({
+			start: new Date("2026-08-03T12:30:00Z"),
+			recurrenceRule: { freq: "DAILY", count: 3 },
+		});
+		expect(
+			occurrencesWithin(
+				event,
+				new Date("2026-08-16T22:00:00Z"),
+				new Date("2026-08-23T22:00:00Z"),
+			),
+		).toEqual([]);
+		expect(
+			iso(
+				occurrencesWithin(
+					event,
+					new Date("2026-08-02T22:00:00Z"),
+					new Date("2026-08-09T22:00:00Z"),
+				),
+			),
+		).toHaveLength(3);
+	});
+
+	test("accepts the numeric WKST that ts-caldav hands over", () => {
+		const event = makeEvent({
+			start: new Date("2026-05-29T12:30:00Z"),
+			recurrenceRule: {
+				freq: "WEEKLY",
+				interval: 4,
+				wkst: "2",
+				byday: ["FR"],
+				until: new Date("2027-05-30T12:30:00Z"),
+			},
+		});
+		expect(
+			iso(
+				occurrencesWithin(
+					event,
+					new Date("2026-08-16T22:00:00Z"),
+					new Date("2026-08-23T22:00:00Z"),
+				),
+			),
+		).toEqual(["2026-08-21T12:30:00.000Z"]);
+	});
+});
+
+describe("expandEvents", () => {
+	const master = makeEvent({
+		start: new Date("2026-08-14T12:30:00Z"),
+		recurrenceRule: { freq: "WEEKLY", byday: ["FR"] },
+	});
+	const override = makeEvent({
+		uid: "test-uid",
+		start: new Date("2026-08-21T15:00:00Z"),
+		customFields: { "recurrence-id": "2026-08-21T14:30:00" },
+	});
+	const window: [Date, Date] = [
+		new Date("2026-08-16T22:00:00Z"),
+		new Date("2026-08-23T22:00:00Z"),
+	];
+
+	test("reports a moved occurrence once, at its new time", () => {
+		const out = expandEvents([master, override], ...window);
+		expect(iso(out.map((o) => o.start))).toEqual(["2026-08-21T15:00:00.000Z"]);
+	});
+
+	test("identifies a replacement by the slot it stands in for", () => {
+		const [only] = expandEvents([master, override], ...window);
+		expect(only?.key).toBe("2026-08-21T14:30:00");
+		expect(only?.fromSeries).toBe(true);
+	});
+
+	test("gives a plain event its own slot as key", () => {
+		const plain = makeEvent({ start: new Date("2026-08-18T09:00:00Z") });
+		const [only] = expandEvents([plain], ...window);
+		expect(only?.key).toBe("2026-08-18T11:00:00");
+		expect(only?.fromSeries).toBe(false);
+	});
+
+	test("returns occurrences oldest first across events", () => {
+		const other = makeEvent({
+			uid: "other",
+			start: new Date("2026-08-17T08:00:00Z"),
+		});
+		const out = expandEvents([master, override, other], ...window);
+		expect(iso(out.map((o) => o.start))).toEqual([
+			"2026-08-17T08:00:00.000Z",
+			"2026-08-21T15:00:00.000Z",
+		]);
 	});
 });

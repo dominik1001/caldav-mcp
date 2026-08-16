@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
-import { occurrencesWithin, replacedOccurrences } from "./recurrence.js";
+import { expandEvents } from "./recurrence.js";
 
 type ListEventsInput = {
 	start: string;
@@ -29,7 +29,7 @@ export const listEventsDefinition = {
 		calendarUrl: z.string(),
 	},
 	returns:
-		"A list of occurrences that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `recurring`, and optionally `description` and `location`. A recurring series contributes one entry per occurrence in the timeframe, so several entries can share a `uid`.",
+		"A list of occurrences that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `recurring`, `occurrence`, and optionally `description` and `location`. A recurring series contributes one entry per occurrence, so several entries share a `uid`: that field addresses the whole series, while `occurrence` identifies the single instance.",
 } as const;
 
 export function registerListEvents(client: CalDAVClient, server: McpServer) {
@@ -46,29 +46,28 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
 			const allEvents = await client.getEvents(calendarUrl, {
 				start: windowStart,
 				end: windowEnd,
+				// Servers that honour this return the occurrences already expanded,
+				// with EXDATE and replacements applied; expandEvents then only has to
+				// pass them through. The ones that ignore it are why it exists.
+				expand: true,
 			});
-			// A rescheduled occurrence arrives as a second event sharing the uid of
-			// its series. Without this the master would still expand into the slot
-			// the override vacated, and the meeting would be listed twice.
-			const replaced = replacedOccurrences(allEvents);
-			const data = allEvents.flatMap((e) => {
-				const duration = e.end.getTime() - e.start.getTime();
-				return occurrencesWithin(
-					e,
-					windowStart,
-					windowEnd,
-					replaced.get(e.uid),
-				).map((occurrence) => ({
-					uid: e.uid,
-					summary: e.summary,
-					start: occurrence,
-					end: new Date(occurrence.getTime() + duration),
-					recurring: Boolean(e.recurrenceRule),
-					...(e.description && { description: e.description }),
-					...(e.location && { location: e.location }),
-				}));
-			});
-			data.sort((a, b) => a.start.getTime() - b.start.getTime());
+			const data = expandEvents(allEvents, windowStart, windowEnd).map(
+				({ event, start, key, fromSeries }) => ({
+					uid: event.uid,
+					summary: event.summary,
+					start,
+					end: new Date(
+						start.getTime() + (event.end.getTime() - event.start.getTime()),
+					),
+					recurring: fromSeries,
+					// Identifies this occurrence within the series. `uid` addresses the
+					// whole series, so update-event and delete-event acting on it hit
+					// every instance, not the one shown here.
+					occurrence: key,
+					...(event.description && { description: event.description }),
+					...(event.location && { location: event.location }),
+				}),
+			);
 			return {
 				content: [{ type: "text", text: JSON.stringify(data) }],
 			};
