@@ -111,6 +111,9 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				}),
 			};
 
+			const is412 = (error: unknown) =>
+				error instanceof CalDAVError && error.status === 412;
+
 			let updated: Awaited<ReturnType<typeof client.updateEvent>>;
 			try {
 				updated = await client.updateEvent(calendarUrl, {
@@ -118,19 +121,35 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 					...changes,
 				});
 			} catch (error) {
-				// Some servers (e.g. Open-Xchange) can report a stale ETag right
-				// after a write, so a same-second update fails If-Match with a 412.
-				// Re-fetch the ETag directly (bypassing the REPORT used above) and
-				// retry once before giving up.
-				if (!(error instanceof CalDAVError) || error.status !== 412) {
-					throw error;
+				if (!is412(error)) throw error;
+
+				// Some servers (observed on Open-Xchange/mailbox.org) reject a
+				// same-second update's If-Match with a 412 even when re-reading
+				// the event confirms the ETag we're sending is current. Re-read
+				// the full event (not just the ETag, so a genuinely concurrent
+				// edit is picked up too) and retry once with it.
+				const [refetched] = await client.getEventsByHref(calendarUrl, [href]);
+				if (!refetched) {
+					throw new Error(`Event not found: ${uid}`);
 				}
-				const freshEtag = await client.getETag(href);
-				updated = await client.updateEvent(calendarUrl, {
-					...existing,
-					...changes,
-					etag: freshEtag,
-				});
+				try {
+					updated = await client.updateEvent(calendarUrl, {
+						...refetched,
+						...changes,
+					});
+				} catch (retryError) {
+					if (!is412(retryError)) throw retryError;
+
+					// Still rejected despite a confirmed-current ETag: the
+					// precondition itself appears unreliable on this server. We
+					// just verified there's no real conflict, so fall back to an
+					// unconditional write rather than failing outright.
+					updated = await client.updateEvent(calendarUrl, {
+						...refetched,
+						...changes,
+						etag: "",
+					});
+				}
 			}
 
 			return {

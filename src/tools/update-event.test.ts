@@ -156,9 +156,13 @@ describe("registerUpdateEvent", () => {
 		expect(passed?.recurrenceRule?.freq).toBe("DAILY");
 	});
 
-	test("retries once with a fresh ETag after a 412 conflict", async () => {
+	test("retries once with a freshly re-read event after a 412 conflict", async () => {
+		const refetchedEvent: Event = { ...existingEvent, etag: '"fresh-etag"' };
 		const mockClient = {
-			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
+			getEventsByHref: vi
+				.fn()
+				.mockResolvedValueOnce([existingEvent])
+				.mockResolvedValueOnce([refetchedEvent]),
 			updateEvent: vi
 				.fn()
 				.mockRejectedValueOnce(
@@ -170,7 +174,6 @@ describe("registerUpdateEvent", () => {
 					etag: '"final-etag"',
 					newCtag: "",
 				}),
-			getETag: vi.fn().mockResolvedValue('"fresh-etag"'),
 		};
 
 		const { server, getHandler } = makeServer();
@@ -185,7 +188,7 @@ describe("registerUpdateEvent", () => {
 		});
 
 		expect(result.content[0].text).toBe("event-123");
-		expect(mockClient.getETag).toHaveBeenCalledWith(existingEvent.href);
+		expect(mockClient.getEventsByHref).toHaveBeenCalledTimes(2);
 		expect(mockClient.updateEvent).toHaveBeenCalledTimes(2);
 		expect(mockClient.updateEvent).toHaveBeenLastCalledWith(
 			"/f/test-calendar/",
@@ -196,11 +199,55 @@ describe("registerUpdateEvent", () => {
 		);
 	});
 
+	test("falls back to an unconditional write when a re-verified ETag still 412s", async () => {
+		const refetchedEvent: Event = { ...existingEvent, etag: '"fresh-etag"' };
+		const conflict = new CalDAVError(
+			"Event with the specified uid does not match.",
+			412,
+		);
+		const mockClient = {
+			getEventsByHref: vi
+				.fn()
+				.mockResolvedValueOnce([existingEvent])
+				.mockResolvedValueOnce([refetchedEvent]),
+			updateEvent: vi
+				.fn()
+				.mockRejectedValueOnce(conflict)
+				.mockRejectedValueOnce(conflict)
+				.mockResolvedValueOnce({
+					uid: "event-123",
+					href: existingEvent.href,
+					etag: '"final-etag"',
+					newCtag: "",
+				}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		const result = await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			summary: "Updated summary",
+		});
+
+		expect(result.content[0].text).toBe("event-123");
+		expect(mockClient.updateEvent).toHaveBeenCalledTimes(3);
+		expect(mockClient.updateEvent).toHaveBeenLastCalledWith(
+			"/f/test-calendar/",
+			expect.objectContaining({
+				summary: "Updated summary",
+				etag: "",
+			}),
+		);
+	});
+
 	test("rethrows non-412 errors without retrying", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
 			updateEvent: vi.fn().mockRejectedValue(new Error("boom")),
-			getETag: vi.fn(),
 		};
 
 		const { server, getHandler } = makeServer();
@@ -216,7 +263,7 @@ describe("registerUpdateEvent", () => {
 			}),
 		).rejects.toThrow("boom");
 
-		expect(mockClient.getETag).not.toHaveBeenCalled();
+		expect(mockClient.getEventsByHref).toHaveBeenCalledTimes(1);
 		expect(mockClient.updateEvent).toHaveBeenCalledTimes(1);
 	});
 
