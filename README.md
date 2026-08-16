@@ -90,7 +90,7 @@ Parameters:
 - `calendarUrl`: string
 
 Returns:
-- A list of occurrences that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `recurring`, and optionally `description` and `location`. A recurring series contributes one entry per occurrence in the timeframe, so several entries can share a `uid`.
+- A list of occurrences that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `recurring`, `occurrence`, and optionally `description` and `location`. A recurring series contributes one entry per occurrence, so several entries share a `uid`. Careful when acting on one of them: `uid` addresses the whole series, and update-event and delete-event take nothing finer, so they change or remove every instance. `occurrence` names the single slot for display and cannot be passed back to target it.
 
 ### create-event
 

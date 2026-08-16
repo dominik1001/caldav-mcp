@@ -359,3 +359,23 @@ describe("expandEvents", () => {
 		]);
 	});
 });
+
+describe("expandEvents with malformed input", () => {
+	test("does not treat an event with its own rule as a replacement", () => {
+		// RFC 5545 forbids the combination, but the point of this module is
+		// surviving what a server actually sends. Honouring the RECURRENCE-ID
+		// here would stamp every expanded occurrence with the same key.
+		const broken = makeEvent({
+			start: new Date("2026-08-17T12:30:00Z"),
+			recurrenceRule: { freq: "DAILY" },
+			customFields: { "recurrence-id": "2026-08-21T14:30:00" },
+		});
+		const out = expandEvents(
+			[broken],
+			new Date("2026-08-16T22:00:00Z"),
+			new Date("2026-08-20T22:00:00Z"),
+		);
+		const keys = out.map((o) => o.key);
+		expect(new Set(keys).size).toBe(keys.length);
+	});
+});
