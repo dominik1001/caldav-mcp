@@ -90,7 +90,7 @@ Parameters:
 - `calendarUrl`: string
 
 Returns:
-- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`
+- A list of occurrences that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `recurring`, and optionally `description` and `location`. A recurring series contributes one entry per occurrence in the timeframe, so several entries can share a `uid`.
 
 ### create-event
 
