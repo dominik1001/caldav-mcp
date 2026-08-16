@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
-import { occurrencesWithin } from "./recurrence.js";
+import { occurrencesWithin, replacedOccurrences } from "./recurrence.js";
 
 type ListEventsInput = {
 	start: string;
@@ -47,19 +47,26 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
 				start: windowStart,
 				end: windowEnd,
 			});
+			// A rescheduled occurrence arrives as a second event sharing the uid of
+			// its series. Without this the master would still expand into the slot
+			// the override vacated, and the meeting would be listed twice.
+			const replaced = replacedOccurrences(allEvents);
 			const data = allEvents.flatMap((e) => {
 				const duration = e.end.getTime() - e.start.getTime();
-				return occurrencesWithin(e, windowStart, windowEnd).map(
-					(occurrence) => ({
-						uid: e.uid,
-						summary: e.summary,
-						start: occurrence,
-						end: new Date(occurrence.getTime() + duration),
-						recurring: Boolean(e.recurrenceRule),
-						...(e.description && { description: e.description }),
-						...(e.location && { location: e.location }),
-					}),
-				);
+				return occurrencesWithin(
+					e,
+					windowStart,
+					windowEnd,
+					replaced.get(e.uid),
+				).map((occurrence) => ({
+					uid: e.uid,
+					summary: e.summary,
+					start: occurrence,
+					end: new Date(occurrence.getTime() + duration),
+					recurring: Boolean(e.recurrenceRule),
+					...(e.description && { description: e.description }),
+					...(e.location && { location: e.location }),
+				}));
 			});
 			data.sort((a, b) => a.start.getTime() - b.start.getTime());
 			return {

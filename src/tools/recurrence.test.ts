@@ -1,6 +1,11 @@
 import type { Event } from "ts-caldav";
 import { describe, expect, test } from "vitest";
-import { occurrencesWithin, toRRuleString } from "./recurrence.js";
+import {
+	occurrencesWithin,
+	replacedOccurrences,
+	toOccurrenceKey,
+	toRRuleString,
+} from "./recurrence.js";
 
 function makeEvent(overrides: Partial<Event> & Pick<Event, "start">): Event {
 	return {
@@ -190,5 +195,103 @@ describe("occurrencesWithin", () => {
 				),
 			),
 		).toEqual(["2026-08-18T12:00:00.000Z"]);
+	});
+});
+
+describe("toOccurrenceKey", () => {
+	test("accepts the shape ts-caldav hands over", () => {
+		expect(toOccurrenceKey("2026-08-21T14:30:00", false)).toBe(
+			"2026-08-21T14:30:00",
+		);
+	});
+
+	test("accepts the bare iCalendar form", () => {
+		expect(toOccurrenceKey("20260821T143000", false)).toBe(
+			"2026-08-21T14:30:00",
+		);
+		expect(toOccurrenceKey("20260821T143000Z", false)).toBe(
+			"2026-08-21T14:30:00",
+		);
+	});
+
+	test("reduces to the day for a whole-day series", () => {
+		expect(toOccurrenceKey("2026-08-21T00:00:00", true)).toBe("2026-08-21");
+		expect(toOccurrenceKey("20260821", true)).toBe("2026-08-21");
+	});
+
+	test("returns nothing for something unparseable", () => {
+		expect(toOccurrenceKey("next tuesday", false)).toBeUndefined();
+	});
+});
+
+describe("replacedOccurrences", () => {
+	test("groups the replaced slots by the uid of their series", () => {
+		const master = makeEvent({
+			start: new Date("2026-05-29T12:30:00Z"),
+			recurrenceRule: { freq: "WEEKLY", byday: ["FR"] },
+		});
+		const override = makeEvent({
+			uid: "test-uid",
+			start: new Date("2026-08-21T15:00:00Z"),
+			customFields: { "recurrence-id": "2026-08-21T14:30:00" },
+		});
+
+		const replaced = replacedOccurrences([master, override]);
+		expect(replaced.get("test-uid")).toEqual(new Set(["2026-08-21T14:30:00"]));
+	});
+
+	test("ignores events that replace nothing", () => {
+		const plain = makeEvent({ start: new Date("2026-08-21T12:30:00Z") });
+		expect(replacedOccurrences([plain]).size).toBe(0);
+	});
+});
+
+describe("occurrencesWithin robustness", () => {
+	test("skips the slot an override stands in for", () => {
+		// The master recurs every Friday at 14:30 Berlin time.
+		const master = makeEvent({
+			start: new Date("2026-08-14T12:30:00Z"),
+			recurrenceRule: { freq: "WEEKLY", byday: ["FR"] },
+		});
+		const window: [Date, Date] = [
+			new Date("2026-08-16T22:00:00Z"),
+			new Date("2026-08-23T22:00:00Z"),
+		];
+
+		expect(iso(occurrencesWithin(master, ...window))).toEqual([
+			"2026-08-21T12:30:00.000Z",
+		]);
+		expect(
+			occurrencesWithin(master, ...window, new Set(["2026-08-21T14:30:00"])),
+		).toEqual([]);
+	});
+
+	test("reaches a present-day window from a series that began decades ago", () => {
+		const ancient = makeEvent({
+			start: new Date("1990-01-01T09:00:00Z"),
+			recurrenceRule: { freq: "DAILY" },
+		});
+		const hits = occurrencesWithin(
+			ancient,
+			new Date("2026-08-17T00:00:00Z"),
+			new Date("2026-08-20T00:00:00Z"),
+		);
+		expect(hits).toHaveLength(3);
+	});
+
+	test("survives a time zone identifier that Intl rejects", () => {
+		// Exchange and older clients emit Windows zone names.
+		const exchange = makeEvent({
+			start: new Date("2026-08-21T12:30:00Z"),
+			startTzid: "W. Europe Standard Time",
+			recurrenceRule: { freq: "WEEKLY", byday: ["FR"] },
+		});
+		expect(() =>
+			occurrencesWithin(
+				exchange,
+				new Date("2026-08-16T22:00:00Z"),
+				new Date("2026-08-23T22:00:00Z"),
+			),
+		).not.toThrow();
 	});
 });
