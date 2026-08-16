@@ -1,7 +1,48 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CalDAVClient, RecurrenceRule } from "ts-caldav";
+import type { CalDAVClient, Event, RecurrenceRule } from "ts-caldav";
 import { z } from "zod";
 import { hrefFor } from "./caldav-href.js";
+
+/**
+ * Reshapes a stored whole-day boundary into what the writer expects.
+ *
+ * A `VALUE=DATE` reaches us as local midnight, but the writer derives the date
+ * it stores with `toISOString()`, which is a day earlier in any zone east of
+ * UTC. Anchoring the same calendar day at UTC midnight makes that conversion a
+ * no-op.
+ */
+function asStoredDate(value: Date): Date {
+	return new Date(
+		Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()),
+	);
+}
+
+/**
+ * Carries the dates of a whole-day event over an update untouched.
+ *
+ * Two mismatches bite when only, say, the location changes and the caller
+ * passes no dates at all. Besides the `toISOString()` shift above, the reader
+ * reports DTEND exclusively while the writer takes it inclusively and adds the
+ * day back itself. Handing the stored values straight back therefore moves the
+ * event: DTSTART lands a day early, while DTEND survives because the two
+ * errors cancel out. Undo both here, so an untouched date stays untouched.
+ */
+function carryWholeDayDates(
+	existing: Event,
+	start: string | undefined,
+	end: string | undefined,
+): { start?: Date; end?: Date } {
+	const carried: { start?: Date; end?: Date } = {};
+	if (start === undefined) {
+		carried.start = asStoredDate(existing.start);
+	}
+	if (end === undefined && existing.end) {
+		const inclusive = asStoredDate(existing.end);
+		inclusive.setUTCDate(inclusive.getUTCDate() - 1);
+		carried.end = inclusive;
+	}
+	return carried;
+}
 
 type RecurrenceRuleInput = {
 	freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | undefined;
@@ -99,8 +140,11 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				throw new Error(`Event not found: ${uid}`);
 			}
 
+			const staysWholeDay = wholeDay ?? existing.wholeDay;
+
 			const updated = await client.updateEvent(calendarUrl, {
 				...existing,
+				...(staysWholeDay && carryWholeDayDates(existing, start, end)),
 				...(summary !== undefined && { summary }),
 				...(start !== undefined && { start: new Date(start) }),
 				...(end !== undefined && { end: new Date(end) }),
