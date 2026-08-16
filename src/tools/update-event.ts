@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CalDAVClient, RecurrenceRule } from "ts-caldav";
+import { type CalDAVClient, CalDAVError, type RecurrenceRule } from "ts-caldav";
 import { z } from "zod";
 import { hrefFor } from "./caldav-href.js";
 
@@ -99,8 +99,7 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				throw new Error(`Event not found: ${uid}`);
 			}
 
-			const updated = await client.updateEvent(calendarUrl, {
-				...existing,
+			const changes = {
 				...(summary !== undefined && { summary }),
 				...(start !== undefined && { start: new Date(start) }),
 				...(end !== undefined && { end: new Date(end) }),
@@ -110,7 +109,29 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				...(recurrenceRule !== undefined && {
 					recurrenceRule: toRecurrenceRule(recurrenceRule),
 				}),
-			});
+			};
+
+			let updated: Awaited<ReturnType<typeof client.updateEvent>>;
+			try {
+				updated = await client.updateEvent(calendarUrl, {
+					...existing,
+					...changes,
+				});
+			} catch (error) {
+				// Some servers (e.g. Open-Xchange) can report a stale ETag right
+				// after a write, so a same-second update fails If-Match with a 412.
+				// Re-fetch the ETag directly (bypassing the REPORT used above) and
+				// retry once before giving up.
+				if (!(error instanceof CalDAVError) || error.status !== 412) {
+					throw error;
+				}
+				const freshEtag = await client.getETag(href);
+				updated = await client.updateEvent(calendarUrl, {
+					...existing,
+					...changes,
+					etag: freshEtag,
+				});
+			}
 
 			return {
 				content: [{ type: "text", text: updated.uid }],

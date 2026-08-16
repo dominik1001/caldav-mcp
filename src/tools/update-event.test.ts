@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CalDAVClient, Event } from "ts-caldav";
+import { type CalDAVClient, CalDAVError, type Event } from "ts-caldav";
 import { describe, expect, test, vi } from "vitest";
 import { registerUpdateEvent } from "./update-event.js";
 
@@ -154,6 +154,70 @@ describe("registerUpdateEvent", () => {
 		expect(passed?.recurrenceRule?.until).toBeInstanceOf(Date);
 		expect(passed?.recurrenceRule?.until?.toISOString()).toBe(untilIso);
 		expect(passed?.recurrenceRule?.freq).toBe("DAILY");
+	});
+
+	test("retries once with a fresh ETag after a 412 conflict", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
+			updateEvent: vi
+				.fn()
+				.mockRejectedValueOnce(
+					new CalDAVError("Event with the specified uid does not match.", 412),
+				)
+				.mockResolvedValueOnce({
+					uid: "event-123",
+					href: existingEvent.href,
+					etag: '"final-etag"',
+					newCtag: "",
+				}),
+			getETag: vi.fn().mockResolvedValue('"fresh-etag"'),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		const result = await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			summary: "Updated summary",
+		});
+
+		expect(result.content[0].text).toBe("event-123");
+		expect(mockClient.getETag).toHaveBeenCalledWith(existingEvent.href);
+		expect(mockClient.updateEvent).toHaveBeenCalledTimes(2);
+		expect(mockClient.updateEvent).toHaveBeenLastCalledWith(
+			"/f/test-calendar/",
+			expect.objectContaining({
+				summary: "Updated summary",
+				etag: '"fresh-etag"',
+			}),
+		);
+	});
+
+	test("rethrows non-412 errors without retrying", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
+			updateEvent: vi.fn().mockRejectedValue(new Error("boom")),
+			getETag: vi.fn(),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await expect(
+			handler({
+				uid: "event-123",
+				calendarUrl: "/f/test-calendar/",
+				summary: "Updated summary",
+			}),
+		).rejects.toThrow("boom");
+
+		expect(mockClient.getETag).not.toHaveBeenCalled();
+		expect(mockClient.updateEvent).toHaveBeenCalledTimes(1);
 	});
 
 	test("updates wholeDay flag when provided", async () => {
