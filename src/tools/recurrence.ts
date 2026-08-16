@@ -14,8 +14,16 @@ import type { Event, RecurrenceRule } from "ts-caldav";
  * Expanding here keeps the tool honest whatever the server does.
  */
 
-/** Guards against an unbounded rule combined with a far away window. */
-const MAX_OCCURRENCES = 10_000;
+/**
+ * Stops a rule that never terminates. High enough that a daily series running
+ * since the 1980s still reaches a present-day window, because the walk to get
+ * there costs almost nothing: only occurrences near the window are converted
+ * into instants.
+ */
+const MAX_STEPS = 100_000;
+
+/** How far outside the window an occurrence may look before it is discarded. */
+const WALL_CLOCK_MARGIN_DAYS = 1;
 
 function pad(value: number, length = 2): string {
 	return String(value).padStart(length, "0");
@@ -67,8 +75,13 @@ type WallClock = {
 	second: number;
 };
 
-function wallClockIn(instant: Date, timeZone: string): WallClock {
-	const parts = new Intl.DateTimeFormat("en-US", {
+/** One formatter per zone; expansion asks for the same zone thousands of times. */
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatterFor(timeZone: string): Intl.DateTimeFormat {
+	const cached = formatters.get(timeZone);
+	if (cached) return cached;
+	const created = new Intl.DateTimeFormat("en-US", {
 		timeZone,
 		hour12: false,
 		year: "numeric",
@@ -77,7 +90,13 @@ function wallClockIn(instant: Date, timeZone: string): WallClock {
 		hour: "2-digit",
 		minute: "2-digit",
 		second: "2-digit",
-	}).formatToParts(instant);
+	});
+	formatters.set(timeZone, created);
+	return created;
+}
+
+function wallClockIn(instant: Date, timeZone: string): WallClock {
+	const parts = formatterFor(timeZone).formatToParts(instant);
 	const get = (type: string) =>
 		Number(parts.find((part) => part.type === type)?.value ?? "0");
 	// Intl renders midnight as hour 24 in some engines.
@@ -110,8 +129,8 @@ function zoneOffset(instant: Date, timeZone: string): number {
 /**
  * Turns a wall clock reading into the instant it denotes in `timeZone`.
  * Two passes, because the offset itself depends on the instant we are looking
- * for; the second pass settles everything except the hour that a DST jump
- * skips, where any answer is a convention anyway.
+ * for; the second pass settles everything except the hour a daylight saving
+ * jump skips or repeats, where any answer is a convention anyway.
  */
 function instantFromWallClock(wall: WallClock, timeZone: string): Date {
 	const asUTC = Date.UTC(
@@ -163,11 +182,55 @@ function fromICALTime(time: ICAL.Time): WallClock {
  * into a `Date` at *local* midnight by ical.js, not at UTC midnight. Reading it
  * back as UTC shifts a whole-day event by a day in any zone east of Greenwich,
  * which is how a birthday ends up reported one day early.
+ *
+ * A TZID is whatever the writing client put there. Exchange and some older
+ * tools emit Windows zone names ("W. Europe Standard Time") that `Intl` refuses,
+ * so an unusable zone falls back to the local one rather than throwing and
+ * taking the whole query down with it.
  */
 function zoneOf(event: Event): string {
-	return (
-		event.startTzid || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+	const local = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+	const declared = event.startTzid;
+	if (!declared) return local;
+	try {
+		formatterFor(declared);
+		return declared;
+	} catch {
+		return local;
+	}
+}
+
+/**
+ * Identifies an occurrence by its wall clock rather than by an instant.
+ *
+ * RECURRENCE-ID and EXDATE both name an occurrence in the series' own local
+ * terms, and ts-caldav hands them over as a bare `2026-08-21T14:30:00` with the
+ * TZID parameter already dropped. Comparing wall clocks sidesteps the missing
+ * zone entirely.
+ */
+function occurrenceKey(wall: WallClock, isDate: boolean): string {
+	const day = `${wall.year}-${pad(wall.month)}-${pad(wall.day)}`;
+	return isDate
+		? day
+		: `${day}T${pad(wall.hour)}:${pad(wall.minute)}:${pad(wall.second)}`;
+}
+
+/** Normalises a stored RECURRENCE-ID or EXDATE into the same shape. */
+export function toOccurrenceKey(
+	value: string,
+	isDate: boolean,
+): string | undefined {
+	const trimmed = value.trim().replace(/Z$/, "");
+	const iso = trimmed.match(
+		/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2}))?/,
 	);
+	const basic = trimmed.match(
+		/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2}))?$/,
+	);
+	const m = iso ?? basic;
+	if (!m) return undefined;
+	const [, y, mo, d, h = "00", mi = "00", s = "00"] = m;
+	return isDate ? `${y}-${mo}-${d}` : `${y}-${mo}-${d}T${h}:${mi}:${s}`;
 }
 
 function asArray(value: string | string[] | undefined): string[] {
@@ -176,45 +239,28 @@ function asArray(value: string | string[] | undefined): string[] {
 }
 
 /**
- * Instants the series skips. ts-caldav keeps EXDATE in `customFields` and only
- * retains the first value of each property, so a property listing several
- * dates at once contributes just one. Excluding what we can beats excluding
- * nothing; the alternative is showing meetings that were cancelled.
+ * Occurrences the series itself declares as skipped.
+ *
+ * ts-caldav keeps EXDATE in `customFields` and retains only the first value of
+ * each property, so a property listing several dates at once contributes just
+ * one of them. Excluding what does arrive still beats excluding nothing; the
+ * alternative is showing meetings that were cancelled.
  */
-function exceptionInstants(event: Event, timeZone: string): Set<number> {
-	const raw = asArray(event.customFields?.exdate).concat(
-		asArray(event.customFields?.EXDATE),
-	);
-	const instants = new Set<number>();
-	for (const entry of raw) {
+function exceptionKeys(event: Event, isDate: boolean): Set<string> {
+	const keys = new Set<string>();
+	for (const entry of asArray(event.customFields?.exdate)) {
 		for (const piece of entry.split(",")) {
-			const parsed = new Date(piece.trim());
-			if (!Number.isNaN(parsed.getTime())) {
-				instants.add(parsed.getTime());
-				continue;
-			}
-			// Bare iCalendar form, e.g. 20251202T140000 without a zone marker.
-			const match = piece
-				.trim()
-				.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2}))?Z?$/);
-			if (!match) continue;
-			const [, y, mo, d, h = "0", mi = "0", s = "0"] = match;
-			instants.add(
-				instantFromWallClock(
-					{
-						year: Number(y),
-						month: Number(mo),
-						day: Number(d),
-						hour: Number(h),
-						minute: Number(mi),
-						second: Number(s),
-					},
-					timeZone,
-				).getTime(),
-			);
+			const key = toOccurrenceKey(piece, isDate);
+			if (key) keys.add(key);
 		}
 	}
-	return instants;
+	return keys;
+}
+
+/** The RECURRENCE-ID of an event, if it is a replacement for one occurrence. */
+function recurrenceIdOf(event: Event): string | undefined {
+	const raw = event.customFields?.["recurrence-id"];
+	return typeof raw === "string" ? raw : undefined;
 }
 
 /**
@@ -222,11 +268,16 @@ function exceptionInstants(event: Event, timeZone: string): Set<number> {
  * A single event yields at most one entry. Expansion runs on the wall clock of
  * the event's own zone, so a weekly 14:00 appointment stays at 14:00 across a
  * daylight saving change instead of drifting by an hour.
+ *
+ * `replaced` holds the keys of occurrences that a separate override event
+ * stands in for; those are skipped so a rescheduled meeting is not reported
+ * twice, once at its old slot and once at its new one.
  */
 export function occurrencesWithin(
 	event: Event,
 	windowStart: Date,
 	windowEnd: Date,
+	replaced: ReadonlySet<string> = new Set(),
 ): Date[] {
 	const startsInWindow = (instant: Date) =>
 		instant >= windowStart && instant < windowEnd;
@@ -243,21 +294,57 @@ export function occurrencesWithin(
 
 	const timeZone = zoneOf(event);
 	const isDate = event.wholeDay === true;
-	const excluded = exceptionInstants(event, timeZone);
+	const skip = exceptionKeys(event, isDate);
+
+	// Compare in wall clock while walking, so reaching a window decades after
+	// the series began costs no zone conversions at all.
+	const margin = WALL_CLOCK_MARGIN_DAYS * 24 * 60 * 60 * 1000;
+	const lower = toICALTime(
+		wallClockIn(new Date(windowStart.getTime() - margin), timeZone),
+		false,
+	);
+	const upper = toICALTime(
+		wallClockIn(new Date(windowEnd.getTime() + margin), timeZone),
+		false,
+	);
 
 	const iterator = ICAL.Recur.fromString(rruleString).iterator(
 		toICALTime(wallClockIn(event.start, timeZone), isDate),
 	);
 
 	const found: Date[] = [];
-	for (let seen = 0; seen < MAX_OCCURRENCES; seen += 1) {
+	for (let step = 0; step < MAX_STEPS; step += 1) {
 		const next = iterator.next();
 		if (!next) break;
-		const instant = instantFromWallClock(fromICALTime(next), timeZone);
-		if (instant >= windowEnd) break;
-		if (startsInWindow(instant) && !excluded.has(instant.getTime())) {
-			found.push(instant);
-		}
+		if (next.compare(upper) > 0) break;
+		if (next.compare(lower) < 0) continue;
+
+		const wall = fromICALTime(next);
+		const key = occurrenceKey(wall, isDate);
+		if (skip.has(key) || replaced.has(key)) continue;
+
+		const instant = instantFromWallClock(wall, timeZone);
+		if (startsInWindow(instant)) found.push(instant);
 	}
 	return found;
+}
+
+/**
+ * Keys of the occurrences that `events` replace, grouped by the uid of the
+ * series they belong to.
+ */
+export function replacedOccurrences(
+	events: readonly Event[],
+): Map<string, Set<string>> {
+	const byUid = new Map<string, Set<string>>();
+	for (const event of events) {
+		const raw = recurrenceIdOf(event);
+		if (!raw) continue;
+		const key = toOccurrenceKey(raw, event.wholeDay === true);
+		if (!key) continue;
+		const keys = byUid.get(event.uid) ?? new Set<string>();
+		keys.add(key);
+		byUid.set(event.uid, keys);
+	}
+	return byUid;
 }
