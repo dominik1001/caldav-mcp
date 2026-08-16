@@ -178,7 +178,14 @@ function exceptionKeys(event: Event, isDate: boolean): Set<string> {
 	return keys;
 }
 
+/**
+ * The slot a replacement event stands in for, if it is one. An event carrying a
+ * rule of its own is not treated as a replacement: RFC 5545 does not allow the
+ * combination, and honouring it would stamp every occurrence it expands into
+ * with the same key.
+ */
 function recurrenceIdKey(event: Event): string | undefined {
+	if (event.recurrenceRule?.freq) return undefined;
 	const raw = event.customFields?.["recurrence-id"];
 	return typeof raw === "string"
 		? toOccurrenceKey(raw, event.wholeDay === true)
@@ -211,6 +218,11 @@ function toRecur(rule: RecurrenceRule): ICAL.Recur | undefined {
  * steps. COUNT is left alone, because there the position from the start decides
  * when the series ends. The jump lands one period short so the iterator, not
  * this arithmetic, picks the first occurrence.
+ *
+ * Note this hands `iterator()` something other than the real DTSTART, which the
+ * ical.js docs do not promise to support. It holds because the jump is an exact
+ * multiple of the period and the algorithm only looks at the phase, but an
+ * ical.js upgrade is a reason to re-check it.
  */
 function seedNear(
 	start: ICAL.Time,

@@ -29,7 +29,7 @@ export const listEventsDefinition = {
 		calendarUrl: z.string(),
 	},
 	returns:
-		"A list of occurrences that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `recurring`, `occurrence`, and optionally `description` and `location`. A recurring series contributes one entry per occurrence, so several entries share a `uid`: that field addresses the whole series, while `occurrence` identifies the single instance.",
+		"A list of occurrences that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `recurring`, `occurrence`, and optionally `description` and `location`. A recurring series contributes one entry per occurrence, so several entries share a `uid`. Careful when acting on one of them: `uid` addresses the whole series, and update-event and delete-event take nothing finer, so they change or remove every instance. `occurrence` names the single slot for display and cannot be passed back to target it.",
 } as const;
 
 export function registerListEvents(client: CalDAVClient, server: McpServer) {
