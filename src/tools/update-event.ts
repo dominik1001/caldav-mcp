@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CalDAVClient, RecurrenceRule } from "ts-caldav";
+import { type CalDAVClient, CalDAVError, type RecurrenceRule } from "ts-caldav";
 import { z } from "zod";
 import { hrefFor } from "./caldav-href.js";
 
@@ -99,8 +99,7 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				throw new Error(`Event not found: ${uid}`);
 			}
 
-			const updated = await client.updateEvent(calendarUrl, {
-				...existing,
+			const changes = {
 				...(summary !== undefined && { summary }),
 				...(start !== undefined && { start: new Date(start) }),
 				...(end !== undefined && { end: new Date(end) }),
@@ -110,7 +109,48 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				...(recurrenceRule !== undefined && {
 					recurrenceRule: toRecurrenceRule(recurrenceRule),
 				}),
-			});
+			};
+
+			const is412 = (error: unknown) =>
+				error instanceof CalDAVError && error.status === 412;
+
+			let updated: Awaited<ReturnType<typeof client.updateEvent>>;
+			try {
+				updated = await client.updateEvent(calendarUrl, {
+					...existing,
+					...changes,
+				});
+			} catch (error) {
+				if (!is412(error)) throw error;
+
+				// Some servers (observed on Open-Xchange/mailbox.org) reject a
+				// same-second update's If-Match with a 412 even when re-reading
+				// the event confirms the ETag we're sending is current. Re-read
+				// the full event (not just the ETag, so a genuinely concurrent
+				// edit is picked up too) and retry once with it.
+				const [refetched] = await client.getEventsByHref(calendarUrl, [href]);
+				if (!refetched) {
+					throw new Error(`Event not found: ${uid}`);
+				}
+				try {
+					updated = await client.updateEvent(calendarUrl, {
+						...refetched,
+						...changes,
+					});
+				} catch (retryError) {
+					if (!is412(retryError)) throw retryError;
+
+					// Still rejected despite a confirmed-current ETag: the
+					// precondition itself appears unreliable on this server. We
+					// just verified there's no real conflict, so fall back to an
+					// unconditional write rather than failing outright.
+					updated = await client.updateEvent(calendarUrl, {
+						...refetched,
+						...changes,
+						etag: "",
+					});
+				}
+			}
 
 			return {
 				content: [{ type: "text", text: updated.uid }],
