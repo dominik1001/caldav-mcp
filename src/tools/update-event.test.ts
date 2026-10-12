@@ -182,3 +182,92 @@ describe("registerUpdateEvent", () => {
 		expect(passed?.wholeDay).toBe(true);
 	});
 });
+
+describe("registerUpdateEvent whole-day handling", () => {
+	// A VALUE=DATE reaches us as local midnight, so build the fixture that way.
+	const wholeDayEvent: Event = {
+		uid: "trip-1",
+		href: "/f/test-calendar/trip-1.ics",
+		etag: '"trip"',
+		summary: "Trip",
+		start: new Date(2026, 7, 18),
+		end: new Date(2026, 7, 23),
+		wholeDay: true,
+	};
+
+	function run(args: Parameters<ToolHandler>[0]) {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([wholeDayEvent]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "trip-1",
+				href: wholeDayEvent.href,
+				etag: '"new"',
+				newCtag: "",
+			}),
+		};
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+		return handler(args).then(() => mockClient);
+	}
+
+	test("keeps the dates when only another field changes", async () => {
+		const client = await run({
+			uid: "trip-1",
+			calendarUrl: "/f/test-calendar/",
+			location: "Somewhere else",
+		});
+
+		expect(client.updateEvent).toHaveBeenCalledWith(
+			"/f/test-calendar/",
+			expect.objectContaining({
+				location: "Somewhere else",
+				// The writer formats these with toISOString() and adds a day to the
+				// end, which reproduces the stored 2026-08-18 to 2026-08-23.
+				start: new Date(Date.UTC(2026, 7, 18)),
+				end: new Date(Date.UTC(2026, 7, 22)),
+			}),
+		);
+	});
+
+	test("leaves an explicitly given date alone", async () => {
+		const client = await run({
+			uid: "trip-1",
+			calendarUrl: "/f/test-calendar/",
+			start: "2026-09-01T00:00:00+02:00",
+		});
+
+		const [, payload] = client.updateEvent.mock.calls[0];
+		expect(payload.start).toEqual(new Date("2026-09-01T00:00:00+02:00"));
+		expect(payload.end).toEqual(new Date(Date.UTC(2026, 7, 22)));
+	});
+
+	test("does not touch the dates of a timed event", async () => {
+		const timed: Event = { ...wholeDayEvent, wholeDay: false };
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([timed]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "trip-1",
+				href: timed.href,
+				etag: '"new"',
+				newCtag: "",
+			}),
+		};
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "trip-1",
+			calendarUrl: "/f/test-calendar/",
+			location: "Somewhere else",
+		});
+
+		expect(mockClient.updateEvent).toHaveBeenCalledWith(
+			"/f/test-calendar/",
+			expect.objectContaining({ start: timed.start, end: timed.end }),
+		);
+	});
+});
