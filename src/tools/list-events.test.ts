@@ -117,3 +117,53 @@ describe("registerListEvents", () => {
 		expect(events[1]).not.toHaveProperty("location");
 	});
 });
+
+describe("registerListEvents with a rescheduled occurrence", () => {
+	test("reports a moved occurrence once, at its new slot", async () => {
+		// A weekly Friday 14:30 series, with the 21 August instance moved to 17:00.
+		// The server returns both the master and the replacement, sharing a uid.
+		const mockClient = {
+			getEvents: vi.fn().mockResolvedValue([
+				{
+					uid: "series-1",
+					summary: "Weekly sync",
+					start: new Date("2026-08-14T12:30:00Z"),
+					end: new Date("2026-08-14T13:15:00Z"),
+					startTzid: "Europe/Berlin",
+					recurrenceRule: { freq: "WEEKLY", byday: ["FR"] },
+				},
+				{
+					uid: "series-1",
+					summary: "Weekly sync",
+					start: new Date("2026-08-21T15:00:00Z"),
+					end: new Date("2026-08-21T15:45:00Z"),
+					startTzid: "Europe/Berlin",
+					customFields: { "recurrence-id": "2026-08-21T14:30:00" },
+				},
+			]),
+		};
+
+		let toolHandler: ToolHandler | null = null;
+		const server = new McpServer({ name: "test-server", version: "0.1.0" });
+		const originalRegisterTool = server.registerTool.bind(server);
+		server.registerTool = vi.fn(
+			(name: string, config: unknown, handler: ToolHandler) => {
+				if (name === "list-events") toolHandler = handler;
+				return originalRegisterTool(name, config, handler);
+			},
+		) as typeof server.registerTool;
+
+		registerListEvents(mockClient as unknown as CalDAVClient, server);
+		if (!toolHandler) throw new Error("handler not registered");
+
+		const result = await toolHandler({
+			calendarUrl: "/f/test-calendar/",
+			start: "2026-08-16T22:00:00Z",
+			end: "2026-08-23T22:00:00Z",
+		});
+		const events = JSON.parse(result.content[0].text);
+
+		expect(events).toHaveLength(1);
+		expect(events[0].start).toBe("2026-08-21T15:00:00.000Z");
+	});
+});
