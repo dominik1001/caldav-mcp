@@ -19,6 +19,12 @@ function unwrapText(result: unknown): string {
 	return first.text;
 }
 
+function addDays(date: string, days: number): string {
+	const d = new Date(`${date}T00:00:00.000Z`);
+	d.setUTCDate(d.getUTCDate() + days);
+	return d.toISOString().slice(0, 10);
+}
+
 function log(step: string, detail?: unknown) {
 	const suffix =
 		detail === undefined
@@ -182,6 +188,71 @@ async function main() {
 		}),
 	);
 	log("deleted recurring event");
+
+	// Whole-day round trip over more than one day. list-events used to report
+	// the local midnight instant ical.js builds from a VALUE=DATE, which reads
+	// as the previous day in any zone east of UTC, so a correctly stored event
+	// looked shifted. The dates must come back as plain dates, with `end` naming
+	// the last day. Input stays in UTC on purpose: preserving a non-UTC offset
+	// through create-event is a separate fix.
+	const wholeDayStart = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+		.toISOString()
+		.slice(0, 10);
+	const wholeDayEnd = addDays(wholeDayStart, 2);
+	const wholeDayUid = unwrapText(
+		await client.callTool({
+			name: "create-event",
+			arguments: {
+				summary: `caldav-mcp smoke whole-day ${wholeDayStart}`,
+				start: `${wholeDayStart}T00:00:00Z`,
+				end: `${wholeDayEnd}T00:00:00Z`,
+				wholeDay: true,
+				calendarUrl,
+			},
+		}),
+	);
+	log("created whole-day event", {
+		uid: wholeDayUid,
+		start: wholeDayStart,
+		end: wholeDayEnd,
+	});
+
+	const wholeDayListed = JSON.parse(
+		unwrapText(
+			await client.callTool({
+				name: "list-events",
+				arguments: {
+					start: `${addDays(wholeDayStart, -1)}T00:00:00Z`,
+					end: `${addDays(wholeDayEnd, 2)}T00:00:00Z`,
+					calendarUrl,
+				},
+			}),
+		),
+	) as Array<{ uid: string; start: string; end: string; wholeDay?: boolean }>;
+	const foundWholeDay = wholeDayListed.find((e) => e.uid === wholeDayUid);
+	if (!foundWholeDay)
+		throw new Error(`Created whole-day event ${wholeDayUid} not found`);
+	if (
+		foundWholeDay.wholeDay !== true ||
+		foundWholeDay.start !== wholeDayStart ||
+		foundWholeDay.end !== wholeDayEnd
+	) {
+		throw new Error(
+			`Whole-day round trip wrong: expected ${wholeDayStart}..${wholeDayEnd} with wholeDay, got ${JSON.stringify(foundWholeDay)}`,
+		);
+	}
+	log("verified whole-day event dates", {
+		start: foundWholeDay.start,
+		end: foundWholeDay.end,
+	});
+
+	unwrapText(
+		await client.callTool({
+			name: "delete-event",
+			arguments: { uid: wholeDayUid, calendarUrl },
+		}),
+	);
+	log("deleted whole-day event");
 
 	// VTODO round-trip: create → list → complete → update → delete on a
 	// task-capable collection. Tasks often live in a separate VTODO calendar;
