@@ -181,4 +181,65 @@ describe("registerUpdateEvent", () => {
 		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
 		expect(passed?.wholeDay).toBe(true);
 	});
+
+	test("preserves the calendar date when updating a whole-day event with a positive UTC offset", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "event-123",
+				href: existingEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			wholeDay: true,
+			start: "2026-09-30T00:00:00+09:00",
+			end: "2026-09-30T00:00:00+09:00",
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.start.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+		expect(passed?.end.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+	});
+
+	test("keeps treating start/end as whole-day when wholeDay isn't passed but the existing event is whole-day", async () => {
+		const existingWholeDayEvent: Event = {
+			...existingEvent,
+			wholeDay: true,
+		};
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([existingWholeDayEvent]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "event-123",
+				href: existingEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			start: "2026-09-30T00:00:00+09:00",
+			end: "2026-09-30T00:00:00+09:00",
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.start.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+		expect(passed?.end.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+	});
 });

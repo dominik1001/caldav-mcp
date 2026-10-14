@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, RecurrenceRule } from "ts-caldav";
 import { z } from "zod";
 import { hrefFor } from "./caldav-href.js";
+import { toWholeDayDate } from "./whole-day-date.js";
 
 type RecurrenceRuleInput = {
 	freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | undefined;
@@ -25,12 +26,17 @@ type UpdateEventInput = {
 	recurrenceRule?: RecurrenceRuleInput | undefined;
 };
 
-function toRecurrenceRule(r: RecurrenceRuleInput): RecurrenceRule {
+function toRecurrenceRule(
+	r: RecurrenceRuleInput,
+	wholeDay?: boolean,
+): RecurrenceRule {
 	const out: RecurrenceRule = {};
 	if (r.freq !== undefined) out.freq = r.freq;
 	if (r.interval !== undefined) out.interval = r.interval;
 	if (r.count !== undefined) out.count = r.count;
-	if (r.until !== undefined) out.until = new Date(r.until);
+	if (r.until !== undefined) {
+		out.until = wholeDay ? toWholeDayDate(r.until) : new Date(r.until);
+	}
 	if (r.byday !== undefined) out.byday = r.byday;
 	if (r.bymonthday !== undefined) out.bymonthday = r.bymonthday;
 	if (r.bymonth !== undefined) out.bymonth = r.bymonth;
@@ -99,16 +105,23 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				throw new Error(`Event not found: ${uid}`);
 			}
 
+			const effectiveWholeDay =
+				wholeDay !== undefined ? wholeDay : existing.wholeDay;
+
 			const updated = await client.updateEvent(calendarUrl, {
 				...existing,
 				...(summary !== undefined && { summary }),
-				...(start !== undefined && { start: new Date(start) }),
-				...(end !== undefined && { end: new Date(end) }),
+				...(start !== undefined && {
+					start: effectiveWholeDay ? toWholeDayDate(start) : new Date(start),
+				}),
+				...(end !== undefined && {
+					end: effectiveWholeDay ? toWholeDayDate(end) : new Date(end),
+				}),
 				...(wholeDay !== undefined && { wholeDay }),
 				...(description !== undefined && { description }),
 				...(location !== undefined && { location }),
 				...(recurrenceRule !== undefined && {
-					recurrenceRule: toRecurrenceRule(recurrenceRule),
+					recurrenceRule: toRecurrenceRule(recurrenceRule, effectiveWholeDay),
 				}),
 			});
 
