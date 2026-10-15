@@ -12,6 +12,8 @@ type ToolHandler = (params: {
 	wholeDay?: boolean;
 	description?: string;
 	location?: string;
+	reminderBefore?: string;
+	transparent?: boolean;
 	recurrenceRule?: {
 		freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 		interval?: number;
@@ -180,5 +182,63 @@ describe("registerUpdateEvent", () => {
 
 		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
 		expect(passed?.wholeDay).toBe(true);
+	});
+
+	test("sets reminder and keeps other custom fields when marking the event free", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([
+				{
+					...existingEvent,
+					customFields: { transp: "OPAQUE", "x-foo": "bar" },
+				},
+			]),
+			updateEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			reminderBefore: "P3D",
+			transparent: true,
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.alarms).toEqual([{ action: "DISPLAY", trigger: "-P3D" }]);
+		expect(passed?.customFields).toEqual({
+			transp: "TRANSPARENT",
+			"x-foo": "bar",
+		});
+	});
+
+	test("leaves existing alarms and custom fields untouched when not provided", async () => {
+		const withExtras = {
+			...existingEvent,
+			alarms: [{ action: "DISPLAY" as const, trigger: "-PT15M" }],
+			customFields: { transp: "TRANSPARENT" },
+		};
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([withExtras]),
+			updateEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			summary: "Renamed",
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.alarms).toEqual(withExtras.alarms);
+		expect(passed?.customFields).toEqual(withExtras.customFields);
 	});
 });
