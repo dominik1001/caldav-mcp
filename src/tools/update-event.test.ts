@@ -208,7 +208,9 @@ describe("registerUpdateEvent", () => {
 		});
 
 		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
-		expect(passed?.alarms).toEqual([{ action: "DISPLAY", trigger: "-P3D" }]);
+		expect(passed?.alarms).toEqual([
+			{ action: "DISPLAY", trigger: "-P3D", description: "Reminder" },
+		]);
 		expect(passed?.customFields).toEqual({
 			transp: "TRANSPARENT",
 			"x-foo": "bar",

@@ -13,7 +13,11 @@ export const transparentSchema = z
 	.describe("Mark the event as free (true) or busy (false)");
 
 export function toAlarm(reminderBefore: string): Alarm {
-	return { action: "DISPLAY", trigger: `-${reminderBefore}` };
+	return {
+		action: "DISPLAY",
+		trigger: `-${reminderBefore}`,
+		description: "Reminder",
+	};
 }
 
 export function toTransp(transparent: boolean): string {
