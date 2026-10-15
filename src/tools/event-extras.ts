@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const reminderBeforeSchema = z
 	.string()
-	.regex(/^P(?!$)(\d+W|(\d+D)?(T(\d+H)?(\d+M)?(\d+S)?)?)$/)
+	.regex(/^P(?!$)(\d+W|(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+S)?)?)$/)
 	.describe(
 		"Display reminder before the event start, as ISO 8601 duration (e.g. P3D, PT30M)",
 	);
