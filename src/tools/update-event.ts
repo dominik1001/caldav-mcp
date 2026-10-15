@@ -76,7 +76,11 @@ export const updateEventDefinition = {
 		description: z.string().optional(),
 		location: z.string().optional(),
 		recurrenceRule: recurrenceRuleSchema.optional(),
-		reminderBefore: reminderBeforeSchema.optional(),
+		reminderBefore: reminderBeforeSchema
+			.optional()
+			.describe(
+				"Replaces all existing reminders with one display reminder before the event start, as ISO 8601 duration (e.g. P3D, PT30M)",
+			),
 		transparent: transparentSchema.optional(),
 	},
 	returns: "The unique ID of the updated event",
