@@ -240,7 +240,8 @@ async function main() {
 
 	// A whole-day event must come back unchanged when only its location is
 	// updated. (An RRULE UNTIL is not covered here: ts-caldav writes it as
-	// "2030-12-30" instead of "20301230" and cannot read that back.)
+	// "2030-12-30" instead of "20301230" and cannot read that back, see
+	// https://github.com/KlautNet/ts-caldav/issues/29.)
 	const keepUid = unwrapText(
 		await client.callTool({
 			name: "create-event",
