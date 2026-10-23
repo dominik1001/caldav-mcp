@@ -30,6 +30,15 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Lets the review agents read dependency types and run tsc or the tests to validate an issue.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+      - name: Install dependencies
+        # No lifecycle scripts: the review only needs node_modules, not git hooks or a build.
+        run: npm ci --ignore-scripts
+
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
@@ -37,7 +46,23 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          # Without --comment the plugin only prints its findings to the (hidden) action output.
+          # The rest of the prompt exists because Sonnet, as the main agent, skipped the
+          # review and validation agents and posted "No issues found" from a truncated diff.
+          prompt: |
+            /code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }} --comment
+
+            Follow every step of the command. Launch the review agents in step 4 and the
+            validation agents in step 5; do not review the diff yourself instead.
+            Every agent reads the full diff, never a truncated one.
+            Dependencies are installed, so agents can read types in node_modules and run
+            `npx tsc --noEmit` or `npm test` to validate an issue.
+            Claims in the PR description, such as "tests pass", are not evidence.
+          # The main agent orchestrates the review; Opus follows the multi-step process.
+          claude_args: --model claude-opus-5-5
+          # Temporary: shows Claude's report in the job summary so we can see why reviews stop early.
+          # Public repo: anyone can read the summary. Remove once diagnosed.
+          display_report: true
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 

@@ -18,7 +18,7 @@ Thank you for contributing to caldav-mcp! This guide will help you get started.
 ## Development Workflow
 
 ### Making Changes
-1. Create a feature branch: `git checkout -b feat/your-feature`
+1. Create a feature branch from a freshly fetched `main`: `git fetch && git switch --no-track -c feat/your-feature origin/main`
 2. Make changes in `src/`
 3. Write/update tests in `src/tools/*.test.ts`
 4. Validate your changes: `npm run validate`
@@ -52,7 +52,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/) for automate
 ```
 feat: add support for recurring events
 fix: handle HTTP 204 in delete-event
-docs: update CLAUDE.md with new scripts
+docs: update AGENTS.md with new scripts
 test: add tests for create-event tool
 ```
 
