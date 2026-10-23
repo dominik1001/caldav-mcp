@@ -88,9 +88,10 @@ Parameters:
 - `start`: string — Start date (ISO 8601)
 - `end`: string — End date (ISO 8601)
 - `calendarUrl`: string
+- `limit`: number (optional) — Maximum number of events to return
 
 Returns:
-- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`
+- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `durationMinutes`, and optionally `description` and `location`
 
 ### create-event
 
