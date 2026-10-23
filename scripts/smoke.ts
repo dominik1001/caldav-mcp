@@ -88,11 +88,11 @@ async function main() {
 	log("using calendar", calendars[0].displayName ?? calendarUrl);
 
 	// Agents pass this URL back verbatim, so it must be absolute (#81). The
-	// round-trips below therefore run on the absolute form.
-	const baseOrigin = new URL(requireEnv("CALDAV_BASE_URL")).origin;
-	if (!calendarUrl.startsWith(`${baseOrigin}/`))
+	// round-trips below therefore run on the absolute form. The origin may
+	// differ from CALDAV_BASE_URL when the calendar home lives on another host.
+	if (!/^https?:\/\//.test(calendarUrl))
 		throw new Error(
-			`list-calendars returned ${calendarUrl}, expected an absolute URL on ${baseOrigin}`,
+			`list-calendars returned ${calendarUrl}, expected an absolute URL`,
 		);
 	const calendarPath = new URL(calendarUrl).pathname;
 
@@ -177,22 +177,25 @@ async function main() {
 			},
 		}),
 	);
-	unwrapText(
-		await client.callTool({
-			name: "update-event",
-			arguments: {
-				uid: relativeUid,
-				calendarUrl: calendarPath,
-				summary: `${summary} (relative path, updated)`,
-			},
-		}),
-	);
-	unwrapText(
-		await client.callTool({
-			name: "delete-event",
-			arguments: { uid: relativeUid, calendarUrl: calendarPath },
-		}),
-	);
+	try {
+		unwrapText(
+			await client.callTool({
+				name: "update-event",
+				arguments: {
+					uid: relativeUid,
+					calendarUrl: calendarPath,
+					summary: `${summary} (relative path, updated)`,
+				},
+			}),
+		);
+	} finally {
+		unwrapText(
+			await client.callTool({
+				name: "delete-event",
+				arguments: { uid: relativeUid, calendarUrl: calendarPath },
+			}),
+		);
+	}
 	log("round-tripped event via server-relative path", calendarPath);
 
 	// End-to-end coverage for recurring events. Specific `until` → Date
