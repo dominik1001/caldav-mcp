@@ -166,37 +166,46 @@ async function main() {
 
 	// Callers holding a server-relative path from before #81 must keep working.
 	// update-event goes through calendar-multiget, where the href form matters.
-	const relativeUid = unwrapText(
-		await client.callTool({
-			name: "create-event",
-			arguments: {
-				summary: `${summary} (relative path)`,
-				start: start.toISOString(),
-				end: end.toISOString(),
-				calendarUrl: calendarPath,
-			},
-		}),
-	);
-	try {
-		unwrapText(
+	// A path only addresses the calendar on CALDAV_BASE_URL's origin, so skip
+	// this when the calendar lives on another host.
+	if (
+		new URL(calendarUrl).origin ===
+		new URL(requireEnv("CALDAV_BASE_URL")).origin
+	) {
+		const relativeUid = unwrapText(
 			await client.callTool({
-				name: "update-event",
+				name: "create-event",
 				arguments: {
-					uid: relativeUid,
+					summary: `${summary} (relative path)`,
+					start: start.toISOString(),
+					end: end.toISOString(),
 					calendarUrl: calendarPath,
-					summary: `${summary} (relative path, updated)`,
 				},
 			}),
 		);
-	} finally {
-		unwrapText(
-			await client.callTool({
-				name: "delete-event",
-				arguments: { uid: relativeUid, calendarUrl: calendarPath },
-			}),
-		);
+		try {
+			unwrapText(
+				await client.callTool({
+					name: "update-event",
+					arguments: {
+						uid: relativeUid,
+						calendarUrl: calendarPath,
+						summary: `${summary} (relative path, updated)`,
+					},
+				}),
+			);
+		} finally {
+			unwrapText(
+				await client.callTool({
+					name: "delete-event",
+					arguments: { uid: relativeUid, calendarUrl: calendarPath },
+				}),
+			);
+		}
+		log("round-tripped event via server-relative path", calendarPath);
+	} else {
+		log("calendar is on another origin, skipping relative-path round-trip");
 	}
-	log("round-tripped event via server-relative path", calendarPath);
 
 	// End-to-end coverage for recurring events. Specific `until` → Date
 	// conversion is asserted in create-event.test.ts / update-event.test.ts;
