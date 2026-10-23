@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
-import { hrefFor } from "./caldav-href.js";
+import { hrefFor, toCalendarPath } from "./caldav-href.js";
 
 type CompleteTodoInput = {
 	uid: string;
@@ -29,7 +29,8 @@ export function registerCompleteTodo(client: CalDAVClient, server: McpServer) {
 			inputSchema: completeTodoDefinition.inputSchema,
 		},
 		async (args: CompleteTodoInput) => {
-			const { uid, calendarUrl } = args;
+			const { uid } = args;
+			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 			const href = hrefFor(calendarUrl, uid);
 			const [existing] = await client.getTodosByHref(calendarUrl, [href]);
 			if (!existing) {

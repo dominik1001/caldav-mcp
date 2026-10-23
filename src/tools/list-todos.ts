@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, Todo } from "ts-caldav";
 import { z } from "zod";
+import { toCalendarPath } from "./caldav-href.js";
 import { type TodoStatus, todoStatusSchema } from "./todo-status.js";
 
 // `OPEN`/`ALL` are filter keywords expressing sets no single status can (a union
@@ -97,7 +98,7 @@ export function registerListTodos(client: CalDAVClient, server: McpServer) {
 			inputSchema: listTodosDefinition.inputSchema,
 		},
 		async (args: ListTodosInput) => {
-			const { calendarUrl } = args;
+			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 			const status = args.status ?? "OPEN";
 			const limit = args.limit ?? 50;
 			const offset = args.offset ?? 0;

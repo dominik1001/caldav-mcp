@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, RecurrenceRule } from "ts-caldav";
 import { z } from "zod";
+import { toCalendarPath } from "./caldav-href.js";
 
 type RecurrenceRuleInput = {
 	freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | undefined;
@@ -77,7 +78,6 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 		},
 		async (args: CreateEventInput) => {
 			const {
-				calendarUrl,
 				summary,
 				start,
 				end,
@@ -86,6 +86,7 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 				location,
 				recurrenceRule,
 			} = args;
+			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 			const event = await client.createEvent(calendarUrl, {
 				summary: summary,
 				start: new Date(start),

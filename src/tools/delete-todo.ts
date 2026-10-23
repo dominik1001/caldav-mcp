@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { type CalDAVClient, CalDAVError } from "ts-caldav";
 import { z } from "zod";
-import { hrefFor } from "./caldav-href.js";
+import { hrefFor, toCalendarPath } from "./caldav-href.js";
 
 type DeleteTodoInput = {
 	uid: string;
@@ -28,7 +28,8 @@ export function registerDeleteTodo(client: CalDAVClient, server: McpServer) {
 			inputSchema: deleteTodoDefinition.inputSchema,
 		},
 		async (args: DeleteTodoInput) => {
-			const { uid, calendarUrl } = args;
+			const { uid } = args;
+			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 			// Map a missing object onto the same friendly message complete-todo and
 			// update-todo raise, so all three todo tools report a missing task the
 			// same way. (delete-event still surfaces the raw transport error; the
