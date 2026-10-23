@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, Event } from "ts-caldav";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { registerUpdateEvent } from "./update-event.js";
 
 type ToolHandler = (params: {
@@ -210,5 +210,173 @@ describe("registerUpdateEvent", () => {
 
 		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
 		expect(passed?.wholeDay).toBe(true);
+	});
+	test("preserves the calendar date when updating a whole-day event with a positive UTC offset", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "event-123",
+				href: existingEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			wholeDay: true,
+			start: "2026-09-30T00:00:00+09:00",
+			end: "2026-09-30T00:00:00+09:00",
+			recurrenceRule: { freq: "YEARLY", until: "2030-09-30T00:00:00+09:00" },
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.start.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+		expect(passed?.end.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+		expect(passed?.recurrenceRule?.until?.toISOString()).toBe(
+			"2030-09-30T00:00:00.000Z",
+		);
+	});
+
+	test("keeps treating start/end as whole-day when wholeDay isn't passed but the existing event is whole-day", async () => {
+		const existingWholeDayEvent: Event = {
+			...existingEvent,
+			wholeDay: true,
+		};
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([existingWholeDayEvent]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "event-123",
+				href: existingEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			start: "2026-09-30T00:00:00+09:00",
+			end: "2026-09-30T00:00:00+09:00",
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.start.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+		expect(passed?.end.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+	});
+});
+
+describe("registerUpdateEvent whole-day handling", () => {
+	// A VALUE=DATE reaches us as local midnight; pin a zone east of UTC so
+	// that local midnight is the previous day in UTC.
+	beforeEach(() => {
+		vi.stubEnv("TZ", "Europe/Berlin");
+	});
+	afterEach(() => {
+		vi.unstubAllEnvs();
+	});
+
+	// Built per test so the fixture is read in the stubbed zone.
+	const wholeDayEvent = (): Event => ({
+		uid: "trip-1",
+		href: "/f/test-calendar/trip-1.ics",
+		etag: '"trip"',
+		summary: "Trip",
+		start: new Date(2026, 7, 18),
+		end: new Date(2026, 7, 23),
+		wholeDay: true,
+	});
+
+	async function run(event: Event, args: Parameters<ToolHandler>[0]) {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([event]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: event.uid,
+				href: event.href,
+				etag: '"new"',
+				newCtag: "",
+			}),
+		};
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+		await handler(args);
+		return mockClient;
+	}
+
+	test("keeps the dates when only another field changes", async () => {
+		const client = await run(wholeDayEvent(), {
+			uid: "trip-1",
+			calendarUrl: "/f/test-calendar/",
+			location: "Somewhere else",
+		});
+
+		expect(client.updateEvent).toHaveBeenCalledWith(
+			"/f/test-calendar/",
+			expect.objectContaining({
+				location: "Somewhere else",
+				// The writer formats these with toISOString() and adds a day to the
+				// end, which reproduces the stored 2026-08-18 to 2026-08-23.
+				start: new Date(Date.UTC(2026, 7, 18)),
+				end: new Date(Date.UTC(2026, 7, 22)),
+			}),
+		);
+	});
+
+	test("writes back the stored DTSTART and DTEND when only the location changes", async () => {
+		const client = await run(wholeDayEvent(), {
+			uid: "trip-1",
+			calendarUrl: "/f/test-calendar/",
+			location: "Somewhere else",
+		});
+
+		// Serialize the way ts-caldav does: VALUE=DATE from toISOString(), and
+		// DTEND = inclusive end + 1 day.
+		const [, payload] = client.updateEvent.mock.calls[0];
+		const dtstart = payload.start.toISOString().slice(0, 10);
+		const dtendDate = new Date(payload.end);
+		dtendDate.setUTCDate(dtendDate.getUTCDate() + 1);
+		const dtend = dtendDate.toISOString().slice(0, 10);
+
+		expect(dtstart).toBe("2026-08-18");
+		expect(dtend).toBe("2026-08-23");
+	});
+
+	test("converts an explicitly given date to its calendar day", async () => {
+		const client = await run(wholeDayEvent(), {
+			uid: "trip-1",
+			calendarUrl: "/f/test-calendar/",
+			start: "2026-09-01T00:00:00+02:00",
+		});
+
+		const [, payload] = client.updateEvent.mock.calls[0];
+		expect(payload.start).toEqual(new Date("2026-09-01T00:00:00.000Z"));
+		expect(payload.end).toEqual(new Date(Date.UTC(2026, 7, 22)));
+	});
+
+	test("does not touch the dates of a timed event", async () => {
+		const timed: Event = { ...wholeDayEvent(), wholeDay: false };
+		const client = await run(timed, {
+			uid: "trip-1",
+			calendarUrl: "/f/test-calendar/",
+			location: "Somewhere else",
+		});
+
+		expect(client.updateEvent).toHaveBeenCalledWith(
+			"/f/test-calendar/",
+			expect.objectContaining({ start: timed.start, end: timed.end }),
+		);
 	});
 });

@@ -235,6 +235,133 @@ async function main() {
 		});
 	}
 
+	// Whole-day round trip with a date written east of UTC (+09:00), then an
+	// update that changes only the location. Regression test for whole-day
+	// dates shifting a day earlier: on create, when the offset input was
+	// converted by instant; on update, when the stored dates were carried over
+	// as is. See src/tools/whole-day-date.ts.
+	const offsetWholeDayDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+		.toISOString()
+		.slice(0, 10);
+	const offsetWholeDayIso = `${offsetWholeDayDate}T00:00:00+09:00`;
+	const offsetWholeDayNextDate = new Date(`${offsetWholeDayDate}T00:00:00Z`);
+	offsetWholeDayNextDate.setUTCDate(offsetWholeDayNextDate.getUTCDate() + 1);
+	const offsetWholeDayDtstart = `VALUE=DATE:${offsetWholeDayDate.replaceAll("-", "")}`;
+	const offsetWholeDayDtend = `VALUE=DATE:${offsetWholeDayNextDate
+		.toISOString()
+		.slice(0, 10)
+		.replaceAll("-", "")}`;
+	// Until #100 lands, list-events returns a whole-day start as the instant of
+	// local midnight; read it back as a local calendar date so the check holds
+	// in any TZ (the server is spawned with this process's TZ). A bare date is
+	// taken as is.
+	function listedCalendarDate(value: string): string {
+		if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+		const d = new Date(value);
+		return [
+			d.getFullYear(),
+			String(d.getMonth() + 1).padStart(2, "0"),
+			String(d.getDate()).padStart(2, "0"),
+		].join("-");
+	}
+	async function listOffsetWholeDay(eventUid: string) {
+		const windowStart = new Date(`${offsetWholeDayDate}T00:00:00Z`);
+		windowStart.setUTCDate(windowStart.getUTCDate() - 1);
+		const windowEnd = new Date(`${offsetWholeDayDate}T00:00:00Z`);
+		windowEnd.setUTCDate(windowEnd.getUTCDate() + 2);
+		const listed = JSON.parse(
+			unwrapText(
+				await client.callTool({
+					name: "list-events",
+					arguments: {
+						start: windowStart.toISOString(),
+						end: windowEnd.toISOString(),
+						calendarUrl,
+					},
+				}),
+			),
+		) as Array<{ uid: string; start: string; location?: string }>;
+		const found = listed.find((e) => e.uid === eventUid);
+		if (!found) throw new Error(`Whole-day event ${eventUid} not found`);
+		return found;
+	}
+	function expectOffsetWholeDayDates(ics: string, stage: string) {
+		try {
+			expectIcsProp(ics, "DTSTART", offsetWholeDayDtstart);
+			expectIcsProp(ics, "DTEND", offsetWholeDayDtend);
+		} catch (err) {
+			throw new Error(
+				`Whole-day dates moved ${stage} (input ${offsetWholeDayIso}): ${(err as Error).message}`,
+			);
+		}
+	}
+
+	const offsetWholeDayUid = unwrapText(
+		await client.callTool({
+			name: "create-event",
+			arguments: {
+				summary: `caldav-mcp smoke whole-day ${offsetWholeDayDate}`,
+				start: offsetWholeDayIso,
+				end: offsetWholeDayIso,
+				wholeDay: true,
+				calendarUrl,
+			},
+		}),
+	);
+	log("created whole-day event", {
+		uid: offsetWholeDayUid,
+		input: offsetWholeDayIso,
+	});
+	try {
+		const offsetWholeDayListed = await listOffsetWholeDay(offsetWholeDayUid);
+		const offsetWholeDayListedDate = listedCalendarDate(
+			offsetWholeDayListed.start,
+		);
+		if (offsetWholeDayListedDate !== offsetWholeDayDate) {
+			throw new Error(
+				`Whole-day event date shifted on create: expected ${offsetWholeDayDate}, got ${offsetWholeDayListedDate} (input ${offsetWholeDayIso})`,
+			);
+		}
+		expectOffsetWholeDayDates(await fetchIcs(offsetWholeDayUid), "on create");
+		log("verified whole-day event date", offsetWholeDayListedDate);
+
+		const offsetWholeDayLocation = "caldav-mcp smoke location";
+		unwrapText(
+			await client.callTool({
+				name: "update-event",
+				arguments: {
+					uid: offsetWholeDayUid,
+					calendarUrl,
+					location: offsetWholeDayLocation,
+				},
+			}),
+		);
+		const offsetWholeDayUpdated = await listOffsetWholeDay(offsetWholeDayUid);
+		if (offsetWholeDayUpdated.location !== offsetWholeDayLocation)
+			throw new Error(
+				`Location not updated: ${offsetWholeDayUpdated.location} !== ${offsetWholeDayLocation}`,
+			);
+		const offsetWholeDayUpdatedDate = listedCalendarDate(
+			offsetWholeDayUpdated.start,
+		);
+		if (offsetWholeDayUpdatedDate !== offsetWholeDayDate) {
+			throw new Error(
+				`Whole-day event date shifted on a location-only update: expected ${offsetWholeDayDate}, got ${offsetWholeDayUpdatedDate}`,
+			);
+		}
+		expectOffsetWholeDayDates(
+			await fetchIcs(offsetWholeDayUid),
+			"on a location-only update",
+		);
+		log("verified whole-day dates after a location-only update");
+	} finally {
+		await client.callTool({
+			name: "delete-event",
+			arguments: { uid: offsetWholeDayUid, calendarUrl },
+		});
+		log("deleted whole-day event");
+	}
+
 	// VTODO round-trip: create → list → complete → update → delete on a
 	// task-capable collection. Tasks often live in a separate VTODO calendar;
 	// if the account has none, skip rather than fail (events already verified).
