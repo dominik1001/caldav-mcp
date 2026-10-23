@@ -27,13 +27,13 @@ const start = "2026-01-01T10:00:00Z";
 const end = "2026-01-01T11:00:00Z";
 
 const tools: [string, Register, Record<string, unknown>][] = [
-	["create-event", registerCreateEvent, { summary: "s", start, end }],
-	["list-events", registerListEvents, { start, end }],
-	["update-event", registerUpdateEvent, { uid: "u1", summary: "s2" }],
+	["create-event", registerCreateEvent, { end, start, summary: "s" }],
+	["list-events", registerListEvents, { end, start }],
+	["update-event", registerUpdateEvent, { summary: "s2", uid: "u1" }],
 	["delete-event", registerDeleteEvent, { uid: "u1" }],
 	["create-todo", registerCreateTodo, { summary: "s" }],
 	["list-todos", registerListTodos, {}],
-	["update-todo", registerUpdateTodo, { uid: "u1", summary: "s2" }],
+	["update-todo", registerUpdateTodo, { summary: "s2", uid: "u1" }],
 	["complete-todo", registerCompleteTodo, { uid: "u1" }],
 	["delete-todo", registerDeleteTodo, { uid: "u1" }],
 ];
@@ -42,27 +42,27 @@ function mockClient() {
 	return {
 		baseUrl,
 		createEvent: vi.fn().mockResolvedValue({ uid: "u1" }),
+		createTodo: vi.fn().mockResolvedValue({ uid: "u1" }),
+		deleteEvent: vi.fn().mockResolvedValue(undefined),
+		deleteTodo: vi.fn().mockResolvedValue(undefined),
+		getETag: vi.fn().mockResolvedValue('"etag"'),
 		getEvents: vi.fn().mockResolvedValue([]),
 		getEventsByHref: vi
 			.fn()
 			.mockResolvedValue([
-				{ uid: "u1", summary: "s", start: new Date(start), end: new Date(end) },
+				{ end: new Date(end), start: new Date(start), summary: "s", uid: "u1" },
 			]),
-		updateEvent: vi.fn().mockResolvedValue({ uid: "u1" }),
-		deleteEvent: vi.fn().mockResolvedValue(undefined),
-		createTodo: vi.fn().mockResolvedValue({ uid: "u1" }),
 		getTodos: vi.fn().mockResolvedValue([]),
-		getTodosByHref: vi.fn().mockResolvedValue([{ uid: "u1", summary: "s" }]),
+		getTodosByHref: vi.fn().mockResolvedValue([{ summary: "s", uid: "u1" }]),
+		updateEvent: vi.fn().mockResolvedValue({ uid: "u1" }),
 		updateTodo: vi.fn().mockResolvedValue({ uid: "u1" }),
-		deleteTodo: vi.fn().mockResolvedValue(undefined),
-		getETag: vi.fn().mockResolvedValue('"etag"'),
 	};
 }
 
 async function callsFor(
 	register: Register,
 	args: Record<string, unknown>,
-	calendarUrl: string,
+	calendarUrl: string
 ) {
 	const client = mockClient();
 	let handler: Handler | undefined;
@@ -72,14 +72,16 @@ async function callsFor(
 		},
 	};
 	register(client as unknown as CalDAVClient, server as unknown as McpServer);
-	if (!handler) throw new Error("tool was not registered");
+	if (!handler) {
+		throw new Error("tool was not registered");
+	}
 	await handler({ ...args, calendarUrl });
 
 	const { baseUrl: _, ...methods } = client;
 	return Object.fromEntries(
 		Object.entries(methods)
 			.filter(([, fn]) => fn.mock.calls.length > 0)
-			.map(([name, fn]) => [name, fn.mock.calls]),
+			.map(([name, fn]) => [name, fn.mock.calls])
 	);
 }
 
@@ -101,7 +103,7 @@ describe("calendarUrl handling", () => {
 			expect(Object.keys(relative).length).toBeGreaterThan(0);
 			expect(absolute).toEqual(relative);
 			expect(JSON.stringify(absolute)).not.toContain("https://");
-		},
+		}
 	);
 
 	test.each(tools)(
@@ -111,6 +113,6 @@ describe("calendarUrl handling", () => {
 			const calls = await callsFor(register, args, foreign);
 
 			expect(JSON.stringify(calls)).toContain(foreign);
-		},
+		}
 	);
 });

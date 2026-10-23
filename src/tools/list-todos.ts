@@ -13,14 +13,14 @@ const statusFilterSchema = z.enum(["OPEN", "ALL", ...todoStatusSchema.options]);
 
 type StatusFilter = z.infer<typeof statusFilterSchema>;
 
-type ListTodosInput = {
+interface ListTodosInput {
 	calendarUrl: string;
-	status?: StatusFilter | undefined;
-	due_before?: string | undefined;
 	due_after?: string | undefined;
+	due_before?: string | undefined;
 	limit?: number | undefined;
 	offset?: number | undefined;
-};
+	status?: StatusFilter | undefined;
+}
 
 const OPEN_STATUSES = ["NEEDS-ACTION", "IN-PROCESS"];
 
@@ -40,37 +40,35 @@ function statusOf(t: Todo): TodoStatus {
 export function compareTodos(a: Todo, b: Todo): number {
 	const soA = a.sortOrder ?? Number.POSITIVE_INFINITY;
 	const soB = b.sortOrder ?? Number.POSITIVE_INFINITY;
-	if (soA !== soB) return soA - soB;
+	if (soA !== soB) {
+		return soA - soB;
+	}
 	const dueA = a.due ? a.due.getTime() : Number.POSITIVE_INFINITY;
 	const dueB = b.due ? b.due.getTime() : Number.POSITIVE_INFINITY;
-	if (dueA !== dueB) return dueA - dueB;
+	if (dueA !== dueB) {
+		return dueA - dueB;
+	}
 	return a.summary.localeCompare(b.summary);
 }
 
 export const listTodosDefinition = {
-	name: "list-todos",
 	description:
 		"List tasks (VTODOs) in the calendar specified by its URL. By default returns only open tasks (NEEDS-ACTION and IN-PROCESS), sorted by manual order then due date. Use `status` to include completed (`COMPLETED`) or all (`ALL`) tasks, and `limit`/`offset` to page through long lists.",
 	inputSchema: {
 		calendarUrl: z.string(),
-		status: statusFilterSchema
+		due_after: z
+			.string()
+			.datetime({ offset: true })
 			.optional()
 			.describe(
-				"Filter by status. `OPEN` (default) = NEEDS-ACTION + IN-PROCESS; `ALL` = everything; or an exact status (NEEDS-ACTION, COMPLETED, IN-PROCESS, CANCELLED).",
+				"Only tasks with a due date at or after this (ISO 8601). Undated tasks are excluded when a due window is set."
 			),
 		due_before: z
 			.string()
 			.datetime({ offset: true })
 			.optional()
 			.describe(
-				"Only tasks with a due date at or before this (ISO 8601). Undated tasks are excluded when a due window is set.",
-			),
-		due_after: z
-			.string()
-			.datetime({ offset: true })
-			.optional()
-			.describe(
-				"Only tasks with a due date at or after this (ISO 8601). Undated tasks are excluded when a due window is set.",
+				"Only tasks with a due date at or before this (ISO 8601). Undated tasks are excluded when a due window is set."
 			),
 		limit: z
 			.number()
@@ -85,7 +83,13 @@ export const listTodosDefinition = {
 			.nonnegative()
 			.optional()
 			.describe("Tasks to skip (default 0)"),
+		status: statusFilterSchema
+			.optional()
+			.describe(
+				"Filter by status. `OPEN` (default) = NEEDS-ACTION + IN-PROCESS; `ALL` = everything; or an exact status (NEEDS-ACTION, COMPLETED, IN-PROCESS, CANCELLED)."
+			),
 	},
+	name: "list-todos",
 	returns:
 		"An object `{ todos, total, limit, offset }` where `total` is the count before pagination. Each todo has `uid`, `summary`, `status`, and optionally `due`, `start`, `completed`, `description`, `location`.",
 } as const;
@@ -106,27 +110,39 @@ export function registerListTodos(client: CalDAVClient, server: McpServer) {
 			const hasWindow =
 				args.due_after !== undefined || args.due_before !== undefined;
 			const after =
-				args.due_after !== undefined
-					? new Date(args.due_after).getTime()
-					: null;
+				args.due_after === undefined
+					? null
+					: new Date(args.due_after).getTime();
 			const before =
-				args.due_before !== undefined
-					? new Date(args.due_before).getTime()
-					: null;
+				args.due_before === undefined
+					? null
+					: new Date(args.due_before).getTime();
 
 			const matchesStatus = (t: Todo): boolean => {
 				const s = statusOf(t);
-				if (status === "ALL") return true;
-				if (status === "OPEN") return OPEN_STATUSES.includes(s);
+				if (status === "ALL") {
+					return true;
+				}
+				if (status === "OPEN") {
+					return OPEN_STATUSES.includes(s);
+				}
 				return s === status;
 			};
 
 			const matchesWindow = (t: Todo): boolean => {
-				if (!hasWindow) return true;
-				if (!t.due) return false;
+				if (!hasWindow) {
+					return true;
+				}
+				if (!t.due) {
+					return false;
+				}
 				const d = t.due.getTime();
-				if (after !== null && d < after) return false;
-				if (before !== null && d > before) return false;
+				if (after !== null && d < after) {
+					return false;
+				}
+				if (before !== null && d > before) {
+					return false;
+				}
 				return true;
 			};
 
@@ -136,9 +152,9 @@ export function registerListTodos(client: CalDAVClient, server: McpServer) {
 				.sort(compareTodos);
 
 			const todos = filtered.slice(offset, offset + limit).map((t) => ({
-				uid: t.uid,
-				summary: t.summary,
 				status: statusOf(t),
+				summary: t.summary,
+				uid: t.uid,
 				...(t.due && { due: t.due }),
 				...(t.start && { start: t.start }),
 				...(t.completed && { completed: t.completed }),
@@ -149,16 +165,16 @@ export function registerListTodos(client: CalDAVClient, server: McpServer) {
 			return {
 				content: [
 					{
-						type: "text",
 						text: JSON.stringify({
-							todos,
-							total: filtered.length,
 							limit,
 							offset,
+							todos,
+							total: filtered.length,
 						}),
+						type: "text",
 					},
 				],
 			};
-		},
+		}
 	);
 }

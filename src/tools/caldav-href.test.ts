@@ -20,19 +20,19 @@ describe("toAbsoluteUrl", () => {
 		"https://cloud.example.com",
 	])("resolves a server-relative href against base %s", (baseUrl) => {
 		expect(toAbsoluteUrl(calendarPath, baseUrl)).toBe(
-			`https://cloud.example.com${calendarPath}`,
+			`https://cloud.example.com${calendarPath}`
 		);
 	});
 
 	test("keeps the port of the base URL", () => {
 		expect(toAbsoluteUrl("/cal/", "http://localhost:5232/")).toBe(
-			"http://localhost:5232/cal/",
+			"http://localhost:5232/cal/"
 		);
 	});
 
 	test("drops credentials embedded in the base URL", () => {
 		expect(
-			toAbsoluteUrl(calendarPath, "https://alice:s3cret@cloud.example.com/"),
+			toAbsoluteUrl(calendarPath, "https://alice:s3cret@cloud.example.com/")
 		).toBe(`https://cloud.example.com${calendarPath}`);
 	});
 
@@ -56,7 +56,7 @@ describe("toCalendarPath", () => {
 
 	test("turns an absolute URL on the configured server into its path", () => {
 		expect(
-			toCalendarPath(`https://cloud.example.com${calendarPath}`, baseUrl),
+			toCalendarPath(`https://cloud.example.com${calendarPath}`, baseUrl)
 		).toBe(calendarPath);
 	});
 
@@ -81,7 +81,7 @@ describe("toCalendarPath", () => {
 
 	test("round-trips with toAbsoluteUrl", () => {
 		expect(toCalendarPath(toAbsoluteUrl(calendarPath, baseUrl), baseUrl)).toBe(
-			calendarPath,
+			calendarPath
 		);
 	});
 });

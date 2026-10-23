@@ -19,11 +19,13 @@ function makeServer() {
 	const originalRegisterTool = server.registerTool.bind(server);
 	server.registerTool = vi.fn(
 		(name: string, config: unknown, handler: ToolHandler) => {
-			if (name === "create-todo") toolHandler = handler;
+			if (name === "create-todo") {
+				toolHandler = handler;
+			}
 			return originalRegisterTool(name, config, handler);
-		},
+		}
 	) as typeof server.registerTool;
-	return { server, getHandler: () => toolHandler };
+	return { getHandler: () => toolHandler, server };
 }
 
 function setup() {
@@ -33,8 +35,10 @@ function setup() {
 	const { server, getHandler } = makeServer();
 	registerCreateTodo(mockClient as unknown as CalDAVClient, server);
 	const handler = getHandler();
-	if (!handler) throw new Error("handler not registered");
-	return { mockClient, handler };
+	if (!handler) {
+		throw new Error("handler not registered");
+	}
+	return { handler, mockClient };
 }
 
 describe("registerCreateTodo", () => {
@@ -43,9 +47,9 @@ describe("registerCreateTodo", () => {
 		const dueIso = "2026-07-01T09:00:00.000Z";
 
 		const result = await handler({
-			summary: "Pay invoice",
 			calendarUrl: "/f/tasks/",
 			due: dueIso,
+			summary: "Pay invoice",
 		});
 
 		expect(result.content[0].text).toBe("todo-123");
@@ -58,7 +62,7 @@ describe("registerCreateTodo", () => {
 	test("omits optional fields when not provided", async () => {
 		const { mockClient, handler } = setup();
 
-		await handler({ summary: "Just a title", calendarUrl: "/f/tasks/" });
+		await handler({ calendarUrl: "/f/tasks/", summary: "Just a title" });
 
 		const passed = mockClient.createTodo.mock.calls[0]?.[1];
 		expect(passed).not.toHaveProperty("due");
@@ -72,9 +76,9 @@ describe("registerCreateTodo", () => {
 		const { mockClient, handler } = setup();
 
 		await handler({
-			summary: "In progress task",
 			calendarUrl: "/f/tasks/",
 			status: "IN-PROCESS",
+			summary: "In progress task",
 		});
 
 		const passed = mockClient.createTodo.mock.calls[0]?.[1];

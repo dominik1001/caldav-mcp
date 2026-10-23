@@ -15,16 +15,16 @@ describe("registerListEvents", () => {
 		const mockClient = {
 			getEvents: vi.fn().mockResolvedValue([
 				{
-					uid: "event-123",
-					summary: "Test Event",
-					start: new Date("2025-10-13T10:00:00Z"),
 					end: new Date("2025-10-13T11:00:00Z"),
+					start: new Date("2025-10-13T10:00:00Z"),
+					summary: "Test Event",
+					uid: "event-123",
 				},
 				{
-					uid: "event-456",
-					summary: "Another Event",
-					start: new Date("2025-10-14T14:00:00Z"),
 					end: new Date("2025-10-14T15:00:00Z"),
+					start: new Date("2025-10-14T14:00:00Z"),
+					summary: "Another Event",
+					uid: "event-456",
 				},
 			]),
 		};
@@ -44,7 +44,7 @@ describe("registerListEvents", () => {
 					toolHandler = handler;
 				}
 				return originalRegisterTool(name, config, handler);
-			},
+			}
 		) as typeof server.registerTool;
 
 		// Register the tool
@@ -56,8 +56,8 @@ describe("registerListEvents", () => {
 		// Call the tool handler
 		const result = await toolHandler({
 			calendarUrl: "/test/calendar/",
-			start: "2025-10-01T00:00:00Z",
 			end: "2025-10-31T23:59:59Z",
+			start: "2025-10-01T00:00:00Z",
 		});
 
 		// Parse the response
@@ -75,18 +75,18 @@ describe("registerListEvents", () => {
 		const mockClient = {
 			getEvents: vi.fn().mockResolvedValue([
 				{
-					uid: "event-with-extras",
-					summary: "Full Event",
-					start: new Date("2025-10-13T10:00:00Z"),
-					end: new Date("2025-10-13T11:00:00Z"),
 					description: "Meeting notes",
+					end: new Date("2025-10-13T11:00:00Z"),
 					location: "Conference Room A",
+					start: new Date("2025-10-13T10:00:00Z"),
+					summary: "Full Event",
+					uid: "event-with-extras",
 				},
 				{
-					uid: "event-bare",
-					summary: "Bare Event",
-					start: new Date("2025-10-14T14:00:00Z"),
 					end: new Date("2025-10-14T15:00:00Z"),
+					start: new Date("2025-10-14T14:00:00Z"),
+					summary: "Bare Event",
+					uid: "event-bare",
 				},
 			]),
 		};
@@ -96,9 +96,11 @@ describe("registerListEvents", () => {
 		const originalRegisterTool = server.registerTool.bind(server);
 		server.registerTool = vi.fn(
 			(name: string, config: unknown, handler: ToolHandler) => {
-				if (name === "list-events") toolHandler = handler;
+				if (name === "list-events") {
+					toolHandler = handler;
+				}
 				return originalRegisterTool(name, config, handler);
-			},
+			}
 		) as typeof server.registerTool;
 
 		registerListEvents(mockClient as CalDAVClient, server);
@@ -106,8 +108,8 @@ describe("registerListEvents", () => {
 
 		const result = await toolHandler({
 			calendarUrl: "/test/calendar/",
-			start: "2025-10-01T00:00:00Z",
 			end: "2025-10-31T23:59:59Z",
+			start: "2025-10-01T00:00:00Z",
 		});
 
 		const events = JSON.parse(result.content[0].text);
@@ -121,22 +123,22 @@ describe("registerListEvents", () => {
 		const mockClient = {
 			getEvents: vi.fn().mockResolvedValue([
 				{
-					uid: "spans-window",
-					summary: "Conference",
-					start: new Date("2026-08-20T09:00:00Z"),
 					end: new Date("2026-08-22T09:00:00Z"),
+					start: new Date("2026-08-20T09:00:00Z"),
+					summary: "Conference",
+					uid: "spans-window",
 				},
 				{
-					uid: "running-at-start",
-					summary: "Late meeting",
-					start: new Date("2026-08-20T23:30:00Z"),
 					end: new Date("2026-08-21T00:30:00Z"),
+					start: new Date("2026-08-20T23:30:00Z"),
+					summary: "Late meeting",
+					uid: "running-at-start",
 				},
 				{
-					uid: "inside-window",
-					summary: "Lunch",
-					start: new Date("2026-08-21T12:00:00Z"),
 					end: new Date("2026-08-21T13:00:00Z"),
+					start: new Date("2026-08-21T12:00:00Z"),
+					summary: "Lunch",
+					uid: "inside-window",
 				},
 			]),
 		};
@@ -146,9 +148,11 @@ describe("registerListEvents", () => {
 		const originalRegisterTool = server.registerTool.bind(server);
 		server.registerTool = vi.fn(
 			(name: string, config: unknown, handler: ToolHandler) => {
-				if (name === "list-events") toolHandler = handler;
+				if (name === "list-events") {
+					toolHandler = handler;
+				}
 				return originalRegisterTool(name, config, handler);
-			},
+			}
 		) as typeof server.registerTool;
 
 		registerListEvents(mockClient as CalDAVClient, server);
@@ -156,8 +160,8 @@ describe("registerListEvents", () => {
 
 		const result = await toolHandler({
 			calendarUrl: "/test/calendar/",
-			start: "2026-08-21T00:00:00Z",
 			end: "2026-08-22T00:00:00Z",
+			start: "2026-08-21T00:00:00Z",
 		});
 
 		const events = JSON.parse(result.content[0].text);

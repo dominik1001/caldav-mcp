@@ -14,9 +14,9 @@ async function listCalendars(baseUrl: string, urls: string[]) {
 		getCalendars: vi.fn().mockResolvedValue(
 			urls.map((url, i) => ({
 				displayName: `Calendar ${i}`,
-				url,
 				supportedComponents: ["VEVENT"],
-			})),
+				url,
+			}))
 		),
 	};
 	let handler: ToolHandler | undefined;
@@ -28,9 +28,11 @@ async function listCalendars(baseUrl: string, urls: string[]) {
 
 	await registerListCalendars(
 		mockClient as unknown as CalDAVClient,
-		server as unknown as McpServer,
+		server as unknown as McpServer
 	);
-	if (!handler) throw new Error("list-calendars was not registered");
+	if (!handler) {
+		throw new Error("list-calendars was not registered");
+	}
 	const result = await handler();
 	return JSON.parse(result.content[0]?.text ?? "") as {
 		displayName: string;
@@ -45,7 +47,7 @@ describe("registerListCalendars", () => {
 			[
 				"/remote.php/dav/calendars/user/personal/",
 				"/remote.php/dav/calendars/user/work/",
-			],
+			]
 		);
 
 		expect(calendars).toEqual([
@@ -68,7 +70,7 @@ describe("registerListCalendars", () => {
 	});
 
 	test("tells agents to pass the URL back verbatim", () => {
-		expect(listCalendarsDefinition.description).toMatch(/absolute URL/);
-		expect(listCalendarsDefinition.description).toMatch(/unchanged/);
+		expect(listCalendarsDefinition.description).toContain("absolute URL");
+		expect(listCalendarsDefinition.description).toContain("unchanged");
 	});
 });

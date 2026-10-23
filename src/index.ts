@@ -22,12 +22,12 @@ const server = new McpServer({
 
 async function main() {
 	const client = await CalDAVClient.create({
-		baseUrl: process.env.CALDAV_BASE_URL || "",
 		auth: {
+			password: process.env.CALDAV_PASSWORD || "",
 			type: "basic",
 			username: process.env.CALDAV_USERNAME || "",
-			password: process.env.CALDAV_PASSWORD || "",
 		},
+		baseUrl: process.env.CALDAV_BASE_URL || "",
 	});
 
 	// Test connection on startup

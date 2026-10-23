@@ -9,40 +9,40 @@ import {
 } from "./recurrence-rule.js";
 import { carryOverWholeDayDates, toWholeDayDate } from "./whole-day-date.js";
 
-type UpdateEventInput = {
-	uid: string;
+interface UpdateEventInput {
 	calendarUrl: string;
-	summary?: string | undefined;
-	start?: string | undefined;
-	end?: string | undefined;
-	wholeDay?: boolean | undefined;
 	description?: string | undefined;
+	end?: string | undefined;
 	location?: string | undefined;
 	recurrenceRule?: RecurrenceRuleInput | undefined;
-};
+	start?: string | undefined;
+	summary?: string | undefined;
+	uid: string;
+	wholeDay?: boolean | undefined;
+}
 
 export const updateEventDefinition = {
-	name: "update-event",
 	description:
 		"Updates an existing event in the calendar specified by its URL. Only provided fields are changed. For a one-day full-day event, set `wholeDay` to true and set `start` and `end` to the same calendar day.",
 	inputSchema: {
+		calendarUrl: z.string(),
+		description: z.string().optional(),
+		end: z.string().datetime({ offset: true }).optional(),
+		location: z.string().optional(),
+		recurrenceRule: recurrenceRuleSchema.optional(),
+		start: z.string().datetime({ offset: true }).optional(),
+		summary: z.string().optional(),
 		uid: z
 			.string()
 			.describe(
-				"Unique identifier of the event to update (obtained from list-events)",
+				"Unique identifier of the event to update (obtained from list-events)"
 			),
-		calendarUrl: z.string(),
-		summary: z.string().optional(),
-		start: z.string().datetime({ offset: true }).optional(),
-		end: z.string().datetime({ offset: true }).optional(),
 		wholeDay: z
 			.boolean()
 			.optional()
 			.describe("Update whether this is a whole-day event"),
-		description: z.string().optional(),
-		location: z.string().optional(),
-		recurrenceRule: recurrenceRuleSchema.optional(),
 	},
+	name: "update-event",
 	returns: "The unique ID of the updated event",
 } as const;
 
@@ -96,8 +96,8 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 			});
 
 			return {
-				content: [{ type: "text", text: updated.uid }],
+				content: [{ text: updated.uid, type: "text" }],
 			};
-		},
+		}
 	);
 }

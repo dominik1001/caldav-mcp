@@ -26,9 +26,7 @@ describe("MCP Server Console Output", () => {
 		consoleErrorSpy = vi
 			.spyOn(console, "error")
 			.mockImplementation(() => undefined);
-		vi.spyOn(process, "exit").mockImplementation(() => {
-			return undefined as never;
-		});
+		vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
 
 		// Mock successful CalDAV client
 		const { CalDAVClient } = await import("ts-caldav");
@@ -50,7 +48,7 @@ describe("MCP Server Console Output", () => {
 			connect = vi.fn().mockResolvedValue(undefined);
 		}
 		vi.mocked(McpServer).mockImplementation(
-			MockMcpServer as unknown as typeof McpServer,
+			MockMcpServer as unknown as typeof McpServer
 		);
 
 		// Mock StdioServerTransport
@@ -59,7 +57,7 @@ describe("MCP Server Console Output", () => {
 		);
 		class MockStdioServerTransport {}
 		vi.mocked(StdioServerTransport).mockImplementation(
-			MockStdioServerTransport as unknown as typeof StdioServerTransport,
+			MockStdioServerTransport as unknown as typeof StdioServerTransport
 		);
 
 		// Mock tool registration functions
@@ -69,14 +67,14 @@ describe("MCP Server Console Output", () => {
 		const listEvents = await import("./tools/list-events.js");
 
 		vi.mocked(createEvent.registerCreateEvent).mockImplementation(
-			() => undefined,
+			() => undefined
 		);
 		vi.mocked(deleteEvent.registerDeleteEvent).mockImplementation(
-			() => undefined,
+			() => undefined
 		);
 		vi.mocked(listCalendars.registerListCalendars).mockResolvedValue(undefined);
 		vi.mocked(listEvents.registerListEvents).mockImplementation(
-			() => undefined,
+			() => undefined
 		);
 
 		// Now import the main module which will execute

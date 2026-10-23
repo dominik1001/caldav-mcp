@@ -3,21 +3,21 @@ import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
 import { hrefFor, toCalendarPath } from "./caldav-href.js";
 
-type CompleteTodoInput = {
-	uid: string;
+interface CompleteTodoInput {
 	calendarUrl: string;
-};
+	uid: string;
+}
 
 export const completeTodoDefinition = {
-	name: "complete-todo",
 	description:
 		"Marks a task (VTODO) as done. Sets its status to COMPLETED and records the completion time.",
 	inputSchema: {
+		calendarUrl: z.string(),
 		uid: z
 			.string()
 			.describe("Unique identifier of the todo to complete (from list-todos)"),
-		calendarUrl: z.string(),
 	},
+	name: "complete-todo",
 	returns: "The unique ID of the completed todo",
 } as const;
 
@@ -40,13 +40,13 @@ export function registerCompleteTodo(client: CalDAVClient, server: McpServer) {
 			// RFC 5545: a COMPLETED VTODO should carry a COMPLETED timestamp.
 			const updated = await client.updateTodo(calendarUrl, {
 				...existing,
-				status: "COMPLETED",
 				completed: new Date(),
+				status: "COMPLETED",
 			});
 
 			return {
-				content: [{ type: "text", text: updated.uid }],
+				content: [{ text: updated.uid, type: "text" }],
 			};
-		},
+		}
 	);
 }

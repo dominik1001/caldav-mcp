@@ -11,8 +11,8 @@ type ToolHandler = (params: {
 describe("registerDeleteEvent", () => {
 	test("successfully deletes event when server returns 204", async () => {
 		const mockClient = {
-			getETag: vi.fn().mockResolvedValue('"abc123"'),
 			deleteEvent: vi.fn().mockResolvedValue(undefined),
+			getETag: vi.fn().mockResolvedValue('"abc123"'),
 		};
 
 		let toolHandler: ToolHandler | null = null;
@@ -28,7 +28,7 @@ describe("registerDeleteEvent", () => {
 					toolHandler = handler;
 				}
 				return originalRegisterTool(name, config, handler);
-			},
+			}
 		) as typeof server.registerTool;
 
 		registerDeleteEvent(mockClient as unknown as CalDAVClient, server);
@@ -42,19 +42,19 @@ describe("registerDeleteEvent", () => {
 
 		expect(result.content[0].text).toBe("Event deleted");
 		expect(mockClient.getETag).toHaveBeenCalledWith(
-			"/f/test-calendar/event-123.ics",
+			"/f/test-calendar/event-123.ics"
 		);
 		expect(mockClient.deleteEvent).toHaveBeenCalledWith(
 			"/f/test-calendar/",
 			"event-123",
-			'"abc123"',
+			'"abc123"'
 		);
 	});
 
 	test("fetches etag before deleting and passes it to deleteEvent", async () => {
 		const mockClient = {
-			getETag: vi.fn().mockResolvedValue('"etag-from-server"'),
 			deleteEvent: vi.fn().mockResolvedValue(undefined),
+			getETag: vi.fn().mockResolvedValue('"etag-from-server"'),
 		};
 
 		let toolHandler: ToolHandler | null = null;
@@ -70,7 +70,7 @@ describe("registerDeleteEvent", () => {
 					toolHandler = handler;
 				}
 				return originalRegisterTool(name, config, handler);
-			},
+			}
 		) as typeof server.registerTool;
 
 		registerDeleteEvent(mockClient as unknown as CalDAVClient, server);
@@ -87,19 +87,19 @@ describe("registerDeleteEvent", () => {
 		expect(mockClient.deleteEvent).toHaveBeenCalledWith(
 			"/cal/work/",
 			"meeting-42",
-			'"etag-from-server"',
+			'"etag-from-server"'
 		);
 
 		// getETag is called before deleteEvent
-		const etagOrder = mockClient.getETag.mock.invocationCallOrder[0];
-		const deleteOrder = mockClient.deleteEvent.mock.invocationCallOrder[0];
+		const [etagOrder] = mockClient.getETag.mock.invocationCallOrder;
+		const [deleteOrder] = mockClient.deleteEvent.mock.invocationCallOrder;
 		expect(etagOrder).toBeLessThan(deleteOrder);
 	});
 
 	test("successfully deletes event when server returns 200", async () => {
 		const mockClient = {
-			getETag: vi.fn().mockResolvedValue('"def456"'),
 			deleteEvent: vi.fn().mockResolvedValue(undefined),
+			getETag: vi.fn().mockResolvedValue('"def456"'),
 		};
 
 		let toolHandler: ToolHandler | null = null;
@@ -115,7 +115,7 @@ describe("registerDeleteEvent", () => {
 					toolHandler = handler;
 				}
 				return originalRegisterTool(name, config, handler);
-			},
+			}
 		) as typeof server.registerTool;
 
 		registerDeleteEvent(mockClient as unknown as CalDAVClient, server);
@@ -129,12 +129,12 @@ describe("registerDeleteEvent", () => {
 
 		expect(result.content[0].text).toBe("Event deleted");
 		expect(mockClient.getETag).toHaveBeenCalledWith(
-			"/f/test-calendar/event-456.ics",
+			"/f/test-calendar/event-456.ics"
 		);
 		expect(mockClient.deleteEvent).toHaveBeenCalledWith(
 			"/f/test-calendar",
 			"event-456",
-			'"def456"',
+			'"def456"'
 		);
 	});
 });

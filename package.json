@@ -1,10 +1,19 @@
 {
 	"name": "caldav-mcp",
-	"mcpName": "io.github.dominik1001/caldav-mcp",
-	"description": "A CalDAV client using Model Context Protocol (MCP) to expose calendar operations as tools for AI assistants.",
 	"version": "0.10.3",
-	"main": "dist/index.js",
+	"description": "A CalDAV client using Model Context Protocol (MCP) to expose calendar operations as tools for AI assistants.",
+	"homepage": "https://github.com/dominik1001/caldav-mcp#readme",
+	"bugs": {
+		"url": "https://github.com/dominik1001/caldav-mcp/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/dominik1001/caldav-mcp.git"
+	},
+	"license": "MIT",
+	"author": "Dominik Grusemann",
 	"type": "module",
+	"main": "dist/index.js",
 	"bin": {
 		"caldav-mcp": "dist/index.js"
 	},
@@ -13,36 +22,23 @@
 	],
 	"scripts": {
 		"build": "tsc && shx chmod +x dist/*.js",
-		"dev": "tsx --watch --env-file=.env src/index.ts",
-		"prepare": "lefthook install",
-		"test": "vitest run",
-		"test:watch": "vitest",
-		"test:coverage": "vitest run --coverage",
 		"check": "biome check .",
-		"check:fix": "biome check --write .",
 		"check:ci": "biome ci .",
+		"check:fix": "biome check --write .",
+		"dev": "tsx --watch --env-file=.env src/index.ts",
 		"docs": "tsx scripts/gen-tool-docs.ts",
 		"docs:check": "tsx scripts/gen-tool-docs.ts --check",
-		"validate": "npm run check && npm test && npm run knip && npm run docs:check && npm run build",
+		"fix": "ultracite fix",
+		"knip": "knip",
+		"prepare": "lefthook install",
+		"semantic-release": "semantic-release",
 		"smoke": "npm run build && tsx --env-file=.env scripts/smoke.ts",
 		"smoke:agent": "npm run build && bash scripts/smoke-agent.sh",
-		"watch": "tsc --watch",
-		"semantic-release": "semantic-release",
-		"knip": "knip"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/dominik1001/caldav-mcp.git"
-	},
-	"bugs": {
-		"url": "https://github.com/dominik1001/caldav-mcp/issues"
-	},
-	"homepage": "https://github.com/dominik1001/caldav-mcp#readme",
-	"author": "Dominik Grusemann",
-	"license": "MIT",
-	"engines": {
-		"node": ">=18.0.0",
-		"npm": ">=9.0.0"
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
+		"test:watch": "vitest",
+		"validate": "npm run check && npm test && npm run knip && npm run docs:check && npm run build",
+		"watch": "tsc --watch"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.26.0",
@@ -50,7 +46,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.14",
+		"@biomejs/biome": "^2.5.15",
 		"@commitlint/cli": "^21.0.0",
 		"@commitlint/config-conventional": "^21.0.0",
 		"@semantic-release/changelog": "^7.0.0",
@@ -65,6 +61,12 @@
 		"shx": "^0.4.0",
 		"tsx": "^4.21.0",
 		"typescript": "^7.0.2",
+		"ultracite": "8.0.1",
 		"vitest": "^5.0.0"
-	}
+	},
+	"engines": {
+		"node": ">=18.0.0",
+		"npm": ">=9.0.0"
+	},
+	"mcpName": "io.github.dominik1001/caldav-mcp"
 }

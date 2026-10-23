@@ -15,12 +15,12 @@ import { listTodosDefinition } from "../src/tools/list-todos.js";
 import { updateEventDefinition } from "../src/tools/update-event.js";
 import { updateTodoDefinition } from "../src/tools/update-todo.js";
 
-type ToolDefinition = {
-	name: string;
+interface ToolDefinition {
 	description: string;
 	inputSchema: Record<string, z.ZodTypeAny>;
+	name: string;
 	returns?: string;
-};
+}
 
 // Render order is significant: this is the order tools appear in the README.
 const TOOLS: ToolDefinition[] = [
@@ -50,18 +50,26 @@ function unwrapOptional(schema: z.ZodTypeAny): {
 }
 
 function describeType(schema: z.ZodTypeAny): string {
-	if (schema instanceof z.ZodString) return "string";
-	if (schema instanceof z.ZodNumber) return "number";
-	if (schema instanceof z.ZodBoolean) return "boolean";
+	if (schema instanceof z.ZodString) {
+		return "string";
+	}
+	if (schema instanceof z.ZodNumber) {
+		return "number";
+	}
+	if (schema instanceof z.ZodBoolean) {
+		return "boolean";
+	}
 	if (schema instanceof z.ZodEnum) {
 		const values = (schema as z.ZodEnum<[string, ...string[]]>).options;
 		return `enum (${values.map((v) => `\`${v}\``).join(" | ")})`;
 	}
 	if (schema instanceof z.ZodArray) {
-		const element = (schema as z.ZodArray<z.ZodTypeAny>).element;
+		const { element } = schema as z.ZodArray<z.ZodTypeAny>;
 		return `array of ${describeType(element)}`;
 	}
-	if (schema instanceof z.ZodObject) return "object";
+	if (schema instanceof z.ZodObject) {
+		return "object";
+	}
 	return "value";
 }
 
@@ -75,7 +83,7 @@ function renderField(name: string, schema: z.ZodTypeAny, indent = ""): string {
 	const trailing = description ? ` — ${description}` : "";
 	const head = `${indent}- \`${name}\`: ${typeLabel}${optionalLabel}${trailing}`;
 	if (inner instanceof z.ZodObject) {
-		const shape = (inner as z.ZodObject<Record<string, z.ZodTypeAny>>).shape;
+		const { shape } = inner as z.ZodObject<Record<string, z.ZodTypeAny>>;
 		const children = Object.entries(shape)
 			.map(([k, v]) => renderField(k, v, `${indent}  `))
 			.join("\n");
@@ -114,13 +122,13 @@ function renderAll(): string {
 function updateReadme(readmePath: string, body: string): string {
 	const current = readFileSync(readmePath, "utf8");
 	const block = `${START}\n${body}\n${END}`;
-	if (!current.includes(START) || !current.includes(END)) {
+	if (!(current.includes(START) && current.includes(END))) {
 		throw new Error(
-			`README is missing ${START} / ${END} markers. Add them around the existing tool docs.`,
+			`README is missing ${START} / ${END} markers. Add them around the existing tool docs.`
 		);
 	}
 	const pattern = new RegExp(
-		`${escapeRegex(START)}[\\s\\S]*?${escapeRegex(END)}`,
+		`${escapeRegex(START)}[\\s\\S]*?${escapeRegex(END)}`
 	);
 	return current.replace(pattern, block);
 }
@@ -138,13 +146,15 @@ function main() {
 	const current = readFileSync(readmePath, "utf8");
 
 	if (next === current) {
-		if (!check) console.log("README tool docs already up to date.");
+		if (!check) {
+			console.log("README tool docs already up to date.");
+		}
 		return;
 	}
 
 	if (check) {
 		console.error(
-			"README tool docs are out of date. Run `npm run docs` and commit the result.",
+			"README tool docs are out of date. Run `npm run docs` and commit the result."
 		);
 		process.exit(1);
 	}

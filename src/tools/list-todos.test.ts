@@ -29,11 +29,13 @@ function makeServer() {
 	const originalRegisterTool = server.registerTool.bind(server);
 	server.registerTool = vi.fn(
 		(name: string, config: unknown, handler: ToolHandler) => {
-			if (name === "list-todos") toolHandler = handler;
+			if (name === "list-todos") {
+				toolHandler = handler;
+			}
 			return originalRegisterTool(name, config, handler);
-		},
+		}
 	) as typeof server.registerTool;
-	return { server, getHandler: () => toolHandler };
+	return { getHandler: () => toolHandler, server };
 }
 
 function setup(todos: Todo[]) {
@@ -41,8 +43,10 @@ function setup(todos: Todo[]) {
 	const { server, getHandler } = makeServer();
 	registerListTodos(mockClient as unknown as CalDAVClient, server);
 	const handler = getHandler();
-	if (!handler) throw new Error("handler not registered");
-	return { mockClient, handler };
+	if (!handler) {
+		throw new Error("handler not registered");
+	}
+	return { handler, mockClient };
 }
 
 function parse(result: { content: { text: string }[] }) {
@@ -56,11 +60,11 @@ function parse(result: { content: { text: string }[] }) {
 
 describe("compareTodos", () => {
 	test("orders by sortOrder asc, then due asc, then summary", () => {
-		const a = todo({ uid: "a", summary: "A", sortOrder: 2 });
-		const b = todo({ uid: "b", summary: "B", sortOrder: 1 });
-		const c = todo({ uid: "c", summary: "C", due: new Date("2026-01-01") });
-		const d = todo({ uid: "d", summary: "D", due: new Date("2026-02-01") });
-		const e = todo({ uid: "e", summary: "E" });
+		const a = todo({ sortOrder: 2, summary: "A", uid: "a" });
+		const b = todo({ sortOrder: 1, summary: "B", uid: "b" });
+		const c = todo({ due: new Date("2026-01-01"), summary: "C", uid: "c" });
+		const d = todo({ due: new Date("2026-02-01"), summary: "D", uid: "d" });
+		const e = todo({ summary: "E", uid: "e" });
 
 		const sorted = [e, d, c, b, a].sort(compareTodos).map((t) => t.uid);
 		// b,a have sortOrder so come first (1 then 2); then due-sorted c,d; then undated e
@@ -71,24 +75,24 @@ describe("compareTodos", () => {
 		// a has the earlier sortOrder but the later due; sortOrder must win,
 		// proving precedence and not a due-first regression.
 		const a = todo({
-			uid: "a",
-			summary: "A",
-			sortOrder: 1,
 			due: new Date("2026-12-01"),
+			sortOrder: 1,
+			summary: "A",
+			uid: "a",
 		});
 		const b = todo({
-			uid: "b",
-			summary: "B",
-			sortOrder: 2,
 			due: new Date("2026-01-01"),
+			sortOrder: 2,
+			summary: "B",
+			uid: "b",
 		});
 		const sorted = [b, a].sort(compareTodos).map((t) => t.uid);
 		expect(sorted).toEqual(["a", "b"]);
 	});
 
 	test("undated tasks sort after dated ones; summary breaks final tie", () => {
-		const x = todo({ uid: "x", summary: "Zebra" });
-		const y = todo({ uid: "y", summary: "Apple" });
+		const x = todo({ summary: "Zebra", uid: "x" });
+		const y = todo({ summary: "Apple", uid: "y" });
 		const sorted = [x, y].sort(compareTodos).map((t) => t.uid);
 		expect(sorted).toEqual(["y", "x"]);
 	});
@@ -96,11 +100,11 @@ describe("compareTodos", () => {
 
 describe("registerListTodos", () => {
 	const mixed = [
-		todo({ uid: "open1", summary: "Open", status: "NEEDS-ACTION" }),
-		todo({ uid: "prog", summary: "Working", status: "IN-PROCESS" }),
-		todo({ uid: "done", summary: "Done", status: "COMPLETED" }),
-		todo({ uid: "cancel", summary: "Cancelled", status: "CANCELLED" }),
-		todo({ uid: "nostatus", summary: "No status" }),
+		todo({ status: "NEEDS-ACTION", summary: "Open", uid: "open1" }),
+		todo({ status: "IN-PROCESS", summary: "Working", uid: "prog" }),
+		todo({ status: "COMPLETED", summary: "Done", uid: "done" }),
+		todo({ status: "CANCELLED", summary: "Cancelled", uid: "cancel" }),
+		todo({ summary: "No status", uid: "nostatus" }),
 	];
 
 	test("defaults to open: includes NEEDS-ACTION, IN-PROCESS, and missing status", async () => {
@@ -119,7 +123,7 @@ describe("registerListTodos", () => {
 	test("status=COMPLETED returns only completed", async () => {
 		const { handler } = setup(mixed);
 		const out = parse(
-			await handler({ calendarUrl: "/f/tasks/", status: "COMPLETED" }),
+			await handler({ calendarUrl: "/f/tasks/", status: "COMPLETED" })
 		);
 		expect(out.todos.map((t) => t.uid)).toEqual(["done"]);
 	});
@@ -127,7 +131,7 @@ describe("registerListTodos", () => {
 	test("an exact status filter matches only that status", async () => {
 		const { handler } = setup(mixed);
 		const out = parse(
-			await handler({ calendarUrl: "/f/tasks/", status: "CANCELLED" }),
+			await handler({ calendarUrl: "/f/tasks/", status: "CANCELLED" })
 		);
 		expect(out.todos.map((t) => t.uid)).toEqual(["cancel"]);
 	});
@@ -135,29 +139,29 @@ describe("registerListTodos", () => {
 	test("status=ALL returns everything", async () => {
 		const { handler } = setup(mixed);
 		const out = parse(
-			await handler({ calendarUrl: "/f/tasks/", status: "ALL" }),
+			await handler({ calendarUrl: "/f/tasks/", status: "ALL" })
 		);
 		expect(out.total).toBe(5);
 	});
 
 	test("due window excludes undated tasks and out-of-range dates", async () => {
 		const items = [
-			todo({ uid: "early", summary: "Early", due: new Date("2026-01-01") }),
+			todo({ due: new Date("2026-01-01"), summary: "Early", uid: "early" }),
 			todo({
-				uid: "inrange",
-				summary: "In range",
 				due: new Date("2026-06-15"),
+				summary: "In range",
+				uid: "inrange",
 			}),
-			todo({ uid: "undated", summary: "Undated" }),
+			todo({ summary: "Undated", uid: "undated" }),
 		];
 		const { handler } = setup(items);
 		const out = parse(
 			await handler({
 				calendarUrl: "/f/tasks/",
-				status: "ALL",
 				due_after: "2026-06-01T00:00:00.000Z",
 				due_before: "2026-06-30T00:00:00.000Z",
-			}),
+				status: "ALL",
+			})
 		);
 		expect(out.todos.map((t) => t.uid)).toEqual(["inrange"]);
 	});
@@ -165,18 +169,18 @@ describe("registerListTodos", () => {
 	test("paginates with limit/offset and reports pre-pagination total", async () => {
 		const items = Array.from({ length: 5 }, (_, i) =>
 			todo({
-				uid: `t${i}`,
-				summary: `T${i}`,
 				sortOrder: i,
 				status: "NEEDS-ACTION",
-			}),
+				summary: `T${i}`,
+				uid: `t${i}`,
+			})
 		);
 		const { handler } = setup(items);
 		const out = parse(
-			await handler({ calendarUrl: "/f/tasks/", limit: 2, offset: 2 }),
+			await handler({ calendarUrl: "/f/tasks/", limit: 2, offset: 2 })
 		);
 		expect(out.todos.map((t) => t.uid)).toEqual(["t2", "t3"]);
-		expect(out).toMatchObject({ total: 5, limit: 2, offset: 2 });
+		expect(out).toMatchObject({ limit: 2, offset: 2, total: 5 });
 	});
 });
 
