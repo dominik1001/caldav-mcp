@@ -32,6 +32,21 @@ const existingEvent: Event = {
 	end: new Date("2026-04-03T11:00:00Z"),
 };
 
+// ts-caldav hands a VALUE=DATE back as local midnight, with an exclusive end:
+// this is a trip from 2026-08-18 to 2026-08-22, stored as DTEND 2026-08-23.
+const wholeDayEvent: Event = {
+	uid: "trip-1",
+	href: "/f/test-calendar/trip-1.ics",
+	etag: '"trip"',
+	summary: "Trip",
+	start: new Date(2026, 7, 18),
+	end: new Date(2026, 7, 23),
+	wholeDay: true,
+};
+
+// The writer stores a whole-day date as the toISOString() day of the Date.
+const storedDay = (date: Date | undefined) => date?.toISOString().slice(0, 10);
+
 function makeServer() {
 	let toolHandler: ToolHandler | null = null;
 	const server = new McpServer({ name: "test-server", version: "0.1.0" });
@@ -125,6 +140,66 @@ describe("registerUpdateEvent", () => {
 			"/f/test-calendar",
 			["/f/test-calendar/event-123.ics"],
 		);
+	});
+
+	test("keeps the UNTIL of a whole-day series when another field changes", async () => {
+		const series: Event = {
+			...wholeDayEvent,
+			recurrenceRule: { freq: "YEARLY", until: new Date(2030, 7, 18) },
+		};
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([series]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "trip-1",
+				href: series.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "trip-1",
+			calendarUrl: "/f/test-calendar/",
+			location: "Somewhere else",
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(storedDay(passed?.recurrenceRule?.until)).toBe("2030-08-18");
+	});
+
+	test("reads an explicit whole-day end as the day it names", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([wholeDayEvent]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "trip-1",
+				href: wholeDayEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		// Extend the trip to the 25th, written the way a caller in Berlin would.
+		await handler({
+			uid: "trip-1",
+			calendarUrl: "/f/test-calendar/",
+			end: "2026-08-25T00:00:00+02:00",
+		});
+
+		// The end is inclusive (see the tool description), so the stored event
+		// must run from the 18th through the 25th.
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(storedDay(passed?.start)).toBe("2026-08-18");
+		expect(storedDay(passed?.end)).toBe("2026-08-25");
 	});
 
 	test("converts recurrenceRule.until from ISO string to Date", async () => {

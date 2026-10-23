@@ -200,8 +200,11 @@ async function main() {
 		if (!res.ok) throw new Error(`GET ${url} failed: ${res.status}`);
 		return res.text();
 	}
+	function icsProp(ics: string, name: string): string | undefined {
+		return ics.match(new RegExp(`^${name}[;:](.*)$`, "m"))?.[1]?.trim();
+	}
 	function expectIcsProp(ics: string, name: string, expected: string) {
-		const actual = ics.match(new RegExp(`^${name}[;:](.*)$`, "m"))?.[1]?.trim();
+		const actual = icsProp(ics, name);
 		if (actual !== expected)
 			throw new Error(`${name} mismatch: ${actual} !== ${expected}\n${ics}`);
 	}
@@ -232,6 +235,77 @@ async function main() {
 		await client.callTool({
 			name: "delete-event",
 			arguments: { uid: convertUid, calendarUrl },
+		});
+	}
+
+	// A whole-day event must come back unchanged when only its location is
+	// updated. (An RRULE UNTIL is not covered here: ts-caldav writes it as
+	// "2030-12-30" instead of "20301230" and cannot read that back.)
+	const keepUid = unwrapText(
+		await client.callTool({
+			name: "create-event",
+			arguments: {
+				summary: "caldav-mcp smoke whole-day keep",
+				start: "2030-09-02T00:00:00Z",
+				end: "2030-09-04T00:00:00Z",
+				wholeDay: true,
+				calendarUrl,
+			},
+		}),
+	);
+	try {
+		const before = await fetchIcs(keepUid);
+		unwrapText(
+			await client.callTool({
+				name: "update-event",
+				arguments: { uid: keepUid, calendarUrl, location: "Elsewhere" },
+			}),
+		);
+		const after = await fetchIcs(keepUid);
+		for (const name of ["DTSTART", "DTEND"]) {
+			expectIcsProp(after, name, icsProp(before, name) ?? "");
+		}
+		log("whole-day event kept its dates across an update");
+	} finally {
+		await client.callTool({
+			name: "delete-event",
+			arguments: { uid: keepUid, calendarUrl },
+		});
+	}
+
+	// An explicit end on a whole-day event names its last day; the start that
+	// is carried over must not move.
+	const tripUid = unwrapText(
+		await client.callTool({
+			name: "create-event",
+			arguments: {
+				summary: "caldav-mcp smoke whole-day trip",
+				start: "2030-08-18T00:00:00Z",
+				end: "2030-08-22T00:00:00Z",
+				wholeDay: true,
+				calendarUrl,
+			},
+		}),
+	);
+	try {
+		unwrapText(
+			await client.callTool({
+				name: "update-event",
+				arguments: {
+					uid: tripUid,
+					calendarUrl,
+					end: "2030-08-25T00:00:00+02:00",
+				},
+			}),
+		);
+		const ics = await fetchIcs(tripUid);
+		expectIcsProp(ics, "DTSTART", "VALUE=DATE:20300818");
+		expectIcsProp(ics, "DTEND", "VALUE=DATE:20300826");
+		log("extended a whole-day event to an explicit end");
+	} finally {
+		await client.callTool({
+			name: "delete-event",
+			arguments: { uid: tripUid, calendarUrl },
 		});
 	}
 
