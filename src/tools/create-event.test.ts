@@ -11,6 +11,8 @@ type ToolHandler = (params: {
 	wholeDay?: boolean;
 	description?: string;
 	location?: string;
+	reminderBefore?: string;
+	transparent?: boolean;
 	recurrenceRule?: {
 		freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 		interval?: number;
@@ -145,5 +147,53 @@ describe("registerCreateEvent", () => {
 
 		const passed = mockClient.createEvent.mock.calls[0]?.[1];
 		expect(passed).not.toHaveProperty("wholeDay");
+	});
+
+	test("passes reminderBefore as a negative DISPLAY alarm and transparent as TRANSP", async () => {
+		const mockClient = {
+			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerCreateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			summary: "Bazaar",
+			start: "2026-11-21T09:00:00.000Z",
+			end: "2026-11-21T16:00:00.000Z",
+			calendarUrl: "/f/test-calendar/",
+			reminderBefore: "P3D",
+			transparent: true,
+		});
+
+		const passed = mockClient.createEvent.mock.calls[0]?.[1];
+		expect(passed?.alarms).toEqual([
+			{ action: "DISPLAY", trigger: "-P3D", description: "Reminder" },
+		]);
+		expect(passed?.customFields).toEqual({ transp: "TRANSPARENT" });
+	});
+
+	test("omits alarms and customFields when neither option is given", async () => {
+		const mockClient = {
+			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerCreateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			summary: "Plain",
+			start: "2026-11-21T09:00:00.000Z",
+			end: "2026-11-21T16:00:00.000Z",
+			calendarUrl: "/f/test-calendar/",
+		});
+
+		const passed = mockClient.createEvent.mock.calls[0]?.[1];
+		expect(passed).not.toHaveProperty("alarms");
+		expect(passed).not.toHaveProperty("customFields");
 	});
 });

@@ -112,6 +112,8 @@ Parameters:
   - `byday`: array of string (optional)
   - `bymonthday`: array of number (optional)
   - `bymonth`: array of number (optional)
+- `reminderBefore`: string (optional) — Display reminder before the event start, as ISO 8601 duration (e.g. P3D, PT30M)
+- `transparent`: boolean (optional) — Mark the event as free (true) or busy (false)
 
 Returns:
 - The unique ID of the created event
@@ -137,6 +139,8 @@ Parameters:
   - `byday`: array of string (optional)
   - `bymonthday`: array of number (optional)
   - `bymonth`: array of number (optional)
+- `reminderBefore`: string (optional) — Display reminder before the event start, as ISO 8601 duration (e.g. P3D, PT30M)
+- `transparent`: boolean (optional) — Mark the event as free (true) or busy (false)
 
 Returns:
 - The unique ID of the updated event
