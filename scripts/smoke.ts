@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { hrefFor } from "../src/tools/caldav-href.js";
 
 type ToolResult = {
 	content: Array<{ type: string; text: string }>;
@@ -45,6 +46,8 @@ async function main() {
 			CALDAV_BASE_URL: requireEnv("CALDAV_BASE_URL"),
 			CALDAV_USERNAME: requireEnv("CALDAV_USERNAME"),
 			CALDAV_PASSWORD: requireEnv("CALDAV_PASSWORD"),
+			// Whole-day dates only shift east of UTC, so CI pins a zone here.
+			...(process.env.TZ && { TZ: process.env.TZ }),
 		},
 		stderr: "inherit",
 	});
@@ -182,6 +185,55 @@ async function main() {
 		}),
 	);
 	log("deleted recurring event");
+
+	// Whole-day dates are checked against the stored ICS: list-events does not
+	// show VALUE=DATE or the RRULE, and both are where the off-by-ones hide.
+	const auth = `Basic ${Buffer.from(
+		`${requireEnv("CALDAV_USERNAME")}:${requireEnv("CALDAV_PASSWORD")}`,
+	).toString("base64")}`;
+	async function fetchIcs(eventUid: string): Promise<string> {
+		const url = new URL(
+			hrefFor(calendarUrl, eventUid),
+			requireEnv("CALDAV_BASE_URL"),
+		);
+		const res = await fetch(url, { headers: { Authorization: auth } });
+		if (!res.ok) throw new Error(`GET ${url} failed: ${res.status}`);
+		return res.text();
+	}
+	function expectIcsProp(ics: string, name: string, expected: string) {
+		const actual = ics.match(new RegExp(`^${name}[;:](.*)$`, "m"))?.[1]?.trim();
+		if (actual !== expected)
+			throw new Error(`${name} mismatch: ${actual} !== ${expected}\n${ics}`);
+	}
+
+	const convertUid = unwrapText(
+		await client.callTool({
+			name: "create-event",
+			arguments: {
+				summary: "caldav-mcp smoke timed to whole-day",
+				start: "2030-08-18T10:00:00Z",
+				end: "2030-08-18T11:00:00Z",
+				calendarUrl,
+			},
+		}),
+	);
+	try {
+		unwrapText(
+			await client.callTool({
+				name: "update-event",
+				arguments: { uid: convertUid, calendarUrl, wholeDay: true },
+			}),
+		);
+		const ics = await fetchIcs(convertUid);
+		expectIcsProp(ics, "DTSTART", "VALUE=DATE:20300818");
+		expectIcsProp(ics, "DTEND", "VALUE=DATE:20300819");
+		log("converted timed event to a one-day whole-day event");
+	} finally {
+		await client.callTool({
+			name: "delete-event",
+			arguments: { uid: convertUid, calendarUrl },
+		});
+	}
 
 	// VTODO round-trip: create → list → complete → update → delete on a
 	// task-capable collection. Tasks often live in a separate VTODO calendar;
