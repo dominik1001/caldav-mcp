@@ -54,7 +54,11 @@ jobs:
 
             Follow every step of the command. Launch the review agents in step 4 and the
             validation agents in step 5; do not review the diff yourself instead.
-            Every agent reads the full diff, never a truncated one.
+            This run is non-interactive: when you end your turn the session ends and any
+            agent still running is killed. Run every agent in the foreground, never in the
+            background, and wait for all of them before you report or post.
+            Every agent reads the whole diff with a single `gh pr diff <number> -R <repo>`
+            call: no redirect to a file and no chained commands, which are blocked here.
             Dependencies are installed, so agents can read types in node_modules and run
             `npx tsc --noEmit` or `npm test` to validate an issue.
             Claims in the PR description, such as "tests pass", are not evidence.
