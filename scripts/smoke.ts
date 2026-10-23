@@ -251,6 +251,10 @@ async function main() {
 		.toISOString()
 		.slice(0, 10)
 		.replaceAll("-", "")}`;
+	// A yearly rule ending four years on (a leap day stays valid), so UNTIL is
+	// checked too: ts-caldav reads and writes it the same way as DTSTART.
+	const offsetWholeDayUntil = `${Number(offsetWholeDayDate.slice(0, 4)) + 4}${offsetWholeDayDate.slice(4)}`;
+	const offsetWholeDayUntilIcs = `UNTIL=${offsetWholeDayUntil.replaceAll("-", "")}`;
 	// Until #100 lands, list-events returns a whole-day start as the instant of
 	// local midnight; read it back as a local calendar date so the check holds
 	// in any TZ (the server is spawned with this process's TZ). A bare date is
@@ -289,6 +293,11 @@ async function main() {
 		try {
 			expectIcsProp(ics, "DTSTART", offsetWholeDayDtstart);
 			expectIcsProp(ics, "DTEND", offsetWholeDayDtend);
+			const rrule = ics.match(/^RRULE:(.*)$/m)?.[1]?.trim() ?? "";
+			if (!rrule.split(";").includes(offsetWholeDayUntilIcs))
+				throw new Error(
+					`RRULE mismatch: ${rrule} lacks ${offsetWholeDayUntilIcs}\n${ics}`,
+				);
 		} catch (err) {
 			throw new Error(
 				`Whole-day dates moved ${stage} (input ${offsetWholeDayIso}): ${(err as Error).message}`,
@@ -304,6 +313,10 @@ async function main() {
 				start: offsetWholeDayIso,
 				end: offsetWholeDayIso,
 				wholeDay: true,
+				recurrenceRule: {
+					freq: "YEARLY",
+					until: `${offsetWholeDayUntil}T00:00:00+09:00`,
+				},
 				calendarUrl,
 			},
 		}),
