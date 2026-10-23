@@ -62,8 +62,15 @@ jobs:
             Dependencies are installed, so agents can read types in node_modules to
             validate an issue. Don't run the build or the tests; CI already does.
             Claims in the PR description, such as "tests pass", are not evidence.
+            Ignore step 1's "Claude has already commented" condition: each push needs a
+            review of the current diff, so earlier review comments are no reason to stop.
           # The main agent orchestrates the review; Opus follows the multi-step process.
-          claude_args: --model claude-opus-5-5
+          # In agent mode the action only installs the inline-comment MCP server when
+          # --allowedTools names it. Without it a review with findings can't post them,
+          # and only "No issues found" (via `gh pr comment`) ever reaches the PR.
+          claude_args: |
+            --model claude-opus-5-5
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
