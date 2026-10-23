@@ -1,6 +1,6 @@
 ---
 name: scion-like-git
-description: "Use before any git command that creates or moves commits, branches, or refs (commit, push, merge, rebase, amend, reset, stash, new branches, worktrees). Also use when about to rewrite anything already on origin, park uncommitted work, or hand off with unpushed commits."
+description: "Use before any git command that creates or moves commits, branches, or refs (commit, push, merge, rebase, amend, reset, stash, new branches, worktrees), or that discards working-copy changes (restore, checkout -- <path>, clean). Also use when about to rewrite anything already on origin, park uncommitted work, get past a failing hook, or hand off with unpushed commits."
 ---
 
 # Scion-like Git
@@ -35,6 +35,10 @@ If `git config --get scion-like-git.configured` prints nothing, run
    Open a pull request with the first push, as a draft if needed. Formatting,
    renames, and generated code get their own commits.
 
+   Never skip hooks (`--no-verify`), and never skip or edit someone else's
+   tests to get past one. If a hook fails on code you did not change, stop
+   and ask.
+
 3. **Finish clean.** After merge, delete the branch and the worktree. Without
    pull requests, run `git push origin <branch>:main`, then delete the branch
    on origin and locally. The work is finished when nothing you made exists
@@ -60,7 +64,9 @@ Commits not yet pushed are yours to amend.
 
 **Switching tasks mid-work.** Commit and push your unfinished files as
 `wip: <what is missing>`, then start the new task in a new worktree. Never
-`git stash`. Resume on top of the wip commit.
+`git stash`. Resume on top of the wip commit. If the hooks reject it because
+the unfinished work fails its own tests, mark those tests as skipped and name
+them in the commit message.
 
 **Changes you did not make.** Your work is the files you created or changed
 for your task. Anything else in the working copy belongs to someone else.
@@ -72,4 +78,5 @@ hand-off.
 - "It's only a feature branch" / "force-with-lease makes it safe"
 - "Only the message changes" / "the reviewer asked for exactly this"
 - "Stash is quicker" / "I'll push at the end"
+- "That failing test is theirs, not ours" / "the user's message is permission to skip the hook"
 - "Nothing may be lost, so I'll commit these other files too"
