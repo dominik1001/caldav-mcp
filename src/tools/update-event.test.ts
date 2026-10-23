@@ -156,6 +156,36 @@ describe("registerUpdateEvent", () => {
 		expect(passed?.recurrenceRule?.freq).toBe("DAILY");
 	});
 
+	test("turns a timed event into a whole-day event on the same day", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
+			updateEvent: vi.fn().mockResolvedValue({
+				uid: "event-123",
+				href: existingEvent.href,
+				etag: '"new-etag"',
+				newCtag: "",
+			}),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			uid: "event-123",
+			calendarUrl: "/f/test-calendar/",
+			wholeDay: true,
+		});
+
+		// The writer stores the toISOString() day of start and end, and treats
+		// end as the last day of the event. Both must be 2026-04-03, or the
+		// event ends up with DTEND <= DTSTART.
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.start.toISOString().slice(0, 10)).toBe("2026-04-03");
+		expect(passed?.end.toISOString().slice(0, 10)).toBe("2026-04-03");
+	});
+
 	test("updates wholeDay flag when provided", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
