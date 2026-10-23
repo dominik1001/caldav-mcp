@@ -52,7 +52,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/) for automate
 ```
 feat: add support for recurring events
 fix: handle HTTP 204 in delete-event
-docs: update CLAUDE.md with new scripts
+docs: update AGENTS.md with new scripts
 test: add tests for create-event tool
 ```
 
