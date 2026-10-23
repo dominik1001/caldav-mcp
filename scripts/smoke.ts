@@ -11,7 +11,7 @@ type ToolResult = {
 function unwrapText(result: unknown): string {
 	const r = result as ToolResult;
 	const first = r.content?.[0];
-	if (!first || first.type !== "text") {
+	if (first?.type !== "text") {
 		throw new Error(`Unexpected tool result shape: ${JSON.stringify(result)}`);
 	}
 	if (r.isError) {
