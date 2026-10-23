@@ -1,3 +1,10 @@
+## [0.10.1](https://github.com/dominik1001/caldav-mcp/compare/v0.10.0...v0.10.1) (2026-10-23)
+
+
+### Reverts
+
+* restore Claude Code Review's prompt rules and Opus main agent ([b402560](https://github.com/dominik1001/caldav-mcp/commit/b4025600374b74f824aebd3f515aba208662d448)), closes [#123](https://github.com/dominik1001/caldav-mcp/issues/123) [#131](https://github.com/dominik1001/caldav-mcp/issues/131) [#128](https://github.com/dominik1001/caldav-mcp/issues/128)
+
 # [0.10.0](https://github.com/dominik1001/caldav-mcp/compare/v0.9.2...v0.10.0) (2026-07-01)
 
 
