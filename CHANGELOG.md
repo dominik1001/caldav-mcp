@@ -1,3 +1,11 @@
+## [0.10.3](https://github.com/dominik1001/caldav-mcp/compare/v0.10.2...v0.10.3) (2026-10-23)
+
+
+### Bug Fixes
+
+* keep base-URL credentials out of list-calendars output ([1c815b8](https://github.com/dominik1001/caldav-mcp/commit/1c815b8bea25529aa953589225bc54d8dbbad809))
+* return absolute calendar URLs from list-calendars ([00e781d](https://github.com/dominik1001/caldav-mcp/commit/00e781d5aba6f3508cf4598c84117c6b22e7aea6)), closes [#81](https://github.com/dominik1001/caldav-mcp/issues/81)
+
 ## [0.10.2](https://github.com/dominik1001/caldav-mcp/compare/v0.10.1...v0.10.2) (2026-10-23)
 
 
