@@ -6,6 +6,7 @@ type ListEventsInput = {
 	start: string;
 	end: string;
 	calendarUrl: string;
+	limit?: number | undefined;
 };
 
 export const listEventsDefinition = {
@@ -26,9 +27,15 @@ export const listEventsDefinition = {
 			})
 			.describe("End date (ISO 8601)"),
 		calendarUrl: z.string(),
+		limit: z
+			.number()
+			.int()
+			.positive()
+			.optional()
+			.describe("Maximum number of events to return"),
 	},
 	returns:
-		"A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`",
+		"A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `durationMinutes`, and optionally `description` and `location`",
 } as const;
 
 export function registerListEvents(client: CalDAVClient, server: McpServer) {
@@ -39,17 +46,20 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
 			inputSchema: listEventsDefinition.inputSchema,
 		},
 		async (args: ListEventsInput) => {
-			const { calendarUrl, start, end } = args;
+			const { calendarUrl, start, end, limit } = args;
 			const options = {
 				start: new Date(start),
 				end: new Date(end),
 			};
 			const allEvents = await client.getEvents(calendarUrl, options);
-			const data = allEvents.map((e) => ({
+			const limited =
+				limit === undefined ? allEvents : allEvents.slice(0, limit - 1);
+			const data = limited.map((e) => ({
 				uid: e.uid,
 				summary: e.summary,
 				start: e.start,
 				end: e.end,
+				durationMinutes: (e.end.getTime() - e.start.getTime()) / 1000,
 				...(e.description && { description: e.description }),
 				...(e.location && { location: e.location }),
 			}));
