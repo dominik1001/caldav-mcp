@@ -39,7 +39,7 @@ export function registerDeleteTodo(client: CalDAVClient, server: McpServer) {
 				etag = await client.getETag(hrefFor(calendarUrl, uid));
 			} catch (error) {
 				if (error instanceof CalDAVError && error.status === 404) {
-					throw new Error(`Todo not found: ${uid}`);
+					throw new Error(`Todo not found: ${uid}`, { cause: error });
 				}
 				throw error;
 			}

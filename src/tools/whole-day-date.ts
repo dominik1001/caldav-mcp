@@ -70,8 +70,10 @@ export function carryOverWholeDayDates(existing: Event): Partial<Event> {
 	const carried: Partial<Event> = {
 		start: localDayToWholeDayDate(existing.start),
 	};
-	if (existing.end) {
-		carried.end = inclusiveEndToWholeDayDate(existing.end, existing.start);
+	// Events built outside ts-caldav's parser can lack DTEND.
+	const end = existing.end as Date | undefined;
+	if (end) {
+		carried.end = inclusiveEndToWholeDayDate(end, existing.start);
 	}
 	if (existing.recurrenceRule?.until) {
 		carried.recurrenceRule = {

@@ -68,7 +68,7 @@ describe("registerListCalendars", () => {
 	});
 
 	test("tells agents to pass the URL back verbatim", () => {
-		expect(listCalendarsDefinition.description).toMatch(/absolute URL/);
-		expect(listCalendarsDefinition.description).toMatch(/unchanged/);
+		expect(listCalendarsDefinition.description).toContain("absolute URL");
+		expect(listCalendarsDefinition.description).toContain("unchanged");
 	});
 });

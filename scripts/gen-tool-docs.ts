@@ -58,7 +58,7 @@ function describeType(schema: z.ZodTypeAny): string {
 		return `enum (${values.map((v) => `\`${v}\``).join(" | ")})`;
 	}
 	if (schema instanceof z.ZodArray) {
-		const element = (schema as z.ZodArray<z.ZodTypeAny>).element;
+		const { element } = schema as z.ZodArray<z.ZodTypeAny>;
 		return `array of ${describeType(element)}`;
 	}
 	if (schema instanceof z.ZodObject) return "object";
@@ -75,7 +75,7 @@ function renderField(name: string, schema: z.ZodTypeAny, indent = ""): string {
 	const trailing = description ? ` — ${description}` : "";
 	const head = `${indent}- \`${name}\`: ${typeLabel}${optionalLabel}${trailing}`;
 	if (inner instanceof z.ZodObject) {
-		const shape = (inner as z.ZodObject<Record<string, z.ZodTypeAny>>).shape;
+		const { shape } = inner as z.ZodObject<Record<string, z.ZodTypeAny>>;
 		const children = Object.entries(shape)
 			.map(([k, v]) => renderField(k, v, `${indent}  `))
 			.join("\n");

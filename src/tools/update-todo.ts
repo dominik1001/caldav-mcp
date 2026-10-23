@@ -59,12 +59,12 @@ export function registerUpdateTodo(client: CalDAVClient, server: McpServer) {
 			// so the cleared case omits the property entirely rather than setting it
 			// undefined (which exactOptionalPropertyTypes forbids).
 			const { completed: priorCompleted, ...base } = existing;
-			const completed =
-				status === undefined
-					? priorCompleted
-					: status === "COMPLETED"
-						? (priorCompleted ?? new Date())
-						: undefined;
+			let completed: Date | undefined;
+			if (status === undefined) {
+				completed = priorCompleted;
+			} else if (status === "COMPLETED") {
+				completed = priorCompleted ?? new Date();
+			}
 
 			const updated = await client.updateTodo(calendarUrl, {
 				...base,

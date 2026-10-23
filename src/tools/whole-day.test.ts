@@ -7,6 +7,8 @@ import { registerCreateEvent } from "./create-event.js";
 import { registerListEvents } from "./list-events.js";
 import { registerUpdateEvent } from "./update-event.js";
 
+const MENTIONS_WHOLE_DAY = /whole-day|wholeDay/i;
+
 // What the CalDAV server stores for a whole-day event: VALUE=DATE days, with
 // an exclusive DTEND.
 type Stored = { uid: string; summary: string; dtstart: string; dtend: string };
@@ -187,6 +189,6 @@ describe("whole-day events through the MCP client", () => {
 		const { tools } = await mcp.listTools();
 		const listEvents = tools.find((t) => t.name === "list-events");
 
-		expect(listEvents?.description).toMatch(/whole-day|wholeDay/i);
+		expect(listEvents?.description).toMatch(MENTIONS_WHOLE_DAY);
 	});
 });

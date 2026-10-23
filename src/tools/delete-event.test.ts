@@ -91,8 +91,8 @@ describe("registerDeleteEvent", () => {
 		);
 
 		// getETag is called before deleteEvent
-		const etagOrder = mockClient.getETag.mock.invocationCallOrder[0];
-		const deleteOrder = mockClient.deleteEvent.mock.invocationCallOrder[0];
+		const [etagOrder] = mockClient.getETag.mock.invocationCallOrder;
+		const [deleteOrder] = mockClient.deleteEvent.mock.invocationCallOrder;
 		expect(etagOrder).toBeLessThan(deleteOrder);
 	});
 
