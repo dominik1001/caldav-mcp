@@ -30,15 +30,6 @@ jobs:
         with:
           fetch-depth: 1
 
-      # Lets the review agents read dependency types (e.g. ts-caldav's) to validate an issue.
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "24"
-          cache: "npm"
-      - name: Install dependencies
-        # No lifecycle scripts: the review only needs node_modules, not git hooks or a build.
-        run: npm ci --ignore-scripts
-
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
@@ -47,23 +38,15 @@ jobs:
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           # Without --comment the plugin only prints its findings to the (hidden) action output.
-          # The rest of the prompt exists because Sonnet, as the main agent, skipped the
-          # review and validation agents and posted "No issues found" from a truncated diff.
+          # The plugin stops if Claude already commented, which would skip every later push.
           prompt: |
             /code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }} --comment
 
-            Follow every step of the command. Launch the review agents in step 4 and the
-            validation agents in step 5; do not review the diff yourself instead.
-            This run is non-interactive: when you end your turn the session ends and any
-            agent still running is killed. Run every agent in the foreground, never in the
-            background, and wait for all of them before you report or post.
-            Every agent reads the whole diff with a single `gh pr diff <number> -R <repo>`
-            call: no redirect to a file and no chained commands, which are blocked here.
-            Dependencies are installed, so agents can read types in node_modules to
-            validate an issue. Don't run the build or the tests; CI already does.
-            Claims in the PR description, such as "tests pass", are not evidence.
-          # The main agent orchestrates the review; Opus follows the multi-step process.
-          claude_args: --model claude-opus-5-5
+            Ignore step 1's "Claude has already commented" condition: review the current diff.
+          # In agent mode the action only installs the inline-comment MCP server when
+          # --allowedTools names it. Without it a review with findings can't post them,
+          # and only "No issues found" (via `gh pr comment`) ever reaches the PR.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-
