@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
+import { toCalendarPath } from "./caldav-href.js";
 import { type TodoStatus, todoStatusSchema } from "./todo-status.js";
 
 type CreateTodoInput = {
@@ -47,15 +48,8 @@ export function registerCreateTodo(client: CalDAVClient, server: McpServer) {
 			inputSchema: createTodoDefinition.inputSchema,
 		},
 		async (args: CreateTodoInput) => {
-			const {
-				calendarUrl,
-				summary,
-				due,
-				start,
-				description,
-				location,
-				status,
-			} = args;
+			const { summary, due, start, description, location, status } = args;
+			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 			const todo = await client.createTodo(calendarUrl, {
 				summary,
 				...(due !== undefined && { due: new Date(due) }),

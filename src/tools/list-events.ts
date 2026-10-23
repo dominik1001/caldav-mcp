@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
+import { toCalendarPath } from "./caldav-href.js";
 
 type ListEventsInput = {
 	start: string;
@@ -39,7 +40,8 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
 			inputSchema: listEventsDefinition.inputSchema,
 		},
 		async (args: ListEventsInput) => {
-			const { calendarUrl, start, end } = args;
+			const { start, end } = args;
+			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 			const options = {
 				start: new Date(start),
 				end: new Date(end),

@@ -87,6 +87,15 @@ async function main() {
 	const calendarUrl = calendars[0].url;
 	log("using calendar", calendars[0].displayName ?? calendarUrl);
 
+	// Agents pass this URL back verbatim, so it must be absolute (#81). The
+	// round-trips below therefore run on the absolute form. The origin may
+	// differ from CALDAV_BASE_URL when the calendar home lives on another host.
+	if (!/^https?:\/\//.test(calendarUrl))
+		throw new Error(
+			`list-calendars returned ${calendarUrl}, expected an absolute URL`,
+		);
+	const calendarPath = new URL(calendarUrl).pathname;
+
 	const start = new Date(Date.now() + 60 * 60 * 1000);
 	const end = new Date(start.getTime() + 30 * 60 * 1000);
 	const summary = `caldav-mcp smoke ${start.toISOString()}`;
@@ -154,6 +163,49 @@ async function main() {
 	if (after.some((e) => e.uid === updatedUid))
 		throw new Error(`Event ${updatedUid} still present after delete`);
 	log("verified deletion");
+
+	// Callers holding a server-relative path from before #81 must keep working.
+	// update-event goes through calendar-multiget, where the href form matters.
+	// A path only addresses the calendar on CALDAV_BASE_URL's origin, so skip
+	// this when the calendar lives on another host.
+	if (
+		new URL(calendarUrl).origin ===
+		new URL(requireEnv("CALDAV_BASE_URL")).origin
+	) {
+		const relativeUid = unwrapText(
+			await client.callTool({
+				name: "create-event",
+				arguments: {
+					summary: `${summary} (relative path)`,
+					start: start.toISOString(),
+					end: end.toISOString(),
+					calendarUrl: calendarPath,
+				},
+			}),
+		);
+		try {
+			unwrapText(
+				await client.callTool({
+					name: "update-event",
+					arguments: {
+						uid: relativeUid,
+						calendarUrl: calendarPath,
+						summary: `${summary} (relative path, updated)`,
+					},
+				}),
+			);
+		} finally {
+			unwrapText(
+				await client.callTool({
+					name: "delete-event",
+					arguments: { uid: relativeUid, calendarUrl: calendarPath },
+				}),
+			);
+		}
+		log("round-tripped event via server-relative path", calendarPath);
+	} else {
+		log("calendar is on another origin, skipping relative-path round-trip");
+	}
 
 	// End-to-end coverage for recurring events. Specific `until` → Date
 	// conversion is asserted in create-event.test.ts / update-event.test.ts;
