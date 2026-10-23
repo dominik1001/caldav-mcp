@@ -118,7 +118,7 @@ describe("whole-day events through the MCP client", () => {
 		});
 	});
 
-	test.fails("create-event stores the day named in a date with an offset", async () => {
+	test("create-event stores the day named in a date with an offset", async () => {
 		const { client, events } = fakeCalendar();
 		const mcp = await connect(client);
 
@@ -137,7 +137,7 @@ describe("whole-day events through the MCP client", () => {
 		});
 	});
 
-	test.fails("update-event keeps the days when only the summary changes", async () => {
+	test("update-event keeps the days when only the summary changes", async () => {
 		const { client, events } = fakeCalendar([trip]);
 		const mcp = await connect(client);
 

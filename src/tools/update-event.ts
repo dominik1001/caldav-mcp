@@ -1,17 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CalDAVClient, RecurrenceRule } from "ts-caldav";
+import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
 import { hrefFor, toCalendarPath } from "./caldav-href.js";
-
-type RecurrenceRuleInput = {
-	freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | undefined;
-	interval?: number | undefined;
-	count?: number | undefined;
-	until?: string | undefined;
-	byday?: string[] | undefined;
-	bymonthday?: number[] | undefined;
-	bymonth?: number[] | undefined;
-};
+import {
+	type RecurrenceRuleInput,
+	recurrenceRuleSchema,
+	toRecurrenceRule,
+} from "./recurrence-rule.js";
+import { carryOverWholeDayDates, toWholeDayDate } from "./whole-day-date.js";
 
 type UpdateEventInput = {
 	uid: string;
@@ -24,28 +20,6 @@ type UpdateEventInput = {
 	location?: string | undefined;
 	recurrenceRule?: RecurrenceRuleInput | undefined;
 };
-
-function toRecurrenceRule(r: RecurrenceRuleInput): RecurrenceRule {
-	const out: RecurrenceRule = {};
-	if (r.freq !== undefined) out.freq = r.freq;
-	if (r.interval !== undefined) out.interval = r.interval;
-	if (r.count !== undefined) out.count = r.count;
-	if (r.until !== undefined) out.until = new Date(r.until);
-	if (r.byday !== undefined) out.byday = r.byday;
-	if (r.bymonthday !== undefined) out.bymonthday = r.bymonthday;
-	if (r.bymonth !== undefined) out.bymonth = r.bymonth;
-	return out;
-}
-
-const recurrenceRuleSchema = z.object({
-	freq: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]).optional(),
-	interval: z.number().optional(),
-	count: z.number().optional(),
-	until: z.string().datetime({ offset: true }).optional(),
-	byday: z.array(z.string()).optional(),
-	bymonthday: z.array(z.number()).optional(),
-	bymonth: z.array(z.number()).optional(),
-});
 
 export const updateEventDefinition = {
 	name: "update-event",
@@ -99,16 +73,25 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				throw new Error(`Event not found: ${uid}`);
 			}
 
+			const effectiveWholeDay = wholeDay ?? existing.wholeDay;
+
 			const updated = await client.updateEvent(calendarUrl, {
 				...existing,
+				// Dates the caller doesn't pass are carried over; reshape them so the
+				// writer stores the same days. Explicit values below override these.
+				...(effectiveWholeDay && carryOverWholeDayDates(existing)),
 				...(summary !== undefined && { summary }),
-				...(start !== undefined && { start: new Date(start) }),
-				...(end !== undefined && { end: new Date(end) }),
+				...(start !== undefined && {
+					start: effectiveWholeDay ? toWholeDayDate(start) : new Date(start),
+				}),
+				...(end !== undefined && {
+					end: effectiveWholeDay ? toWholeDayDate(end) : new Date(end),
+				}),
 				...(wholeDay !== undefined && { wholeDay }),
 				...(description !== undefined && { description }),
 				...(location !== undefined && { location }),
 				...(recurrenceRule !== undefined && {
-					recurrenceRule: toRecurrenceRule(recurrenceRule),
+					recurrenceRule: toRecurrenceRule(recurrenceRule, effectiveWholeDay),
 				}),
 			});
 
