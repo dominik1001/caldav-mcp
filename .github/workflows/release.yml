@@ -122,7 +122,7 @@ jobs:
           CALDAV_USERNAME=test
           CALDAV_PASSWORD=test
           EOF
-          npm run smoke
+          TZ=Europe/Berlin npm run smoke
 
   release:
     needs: [test, knip, smoke]
@@ -132,12 +132,14 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          # Deploy key is a bypass actor on the main ruleset; GITHUB_TOKEN can't push the release commit
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
       - run: npm ci
       - run: npm run build
-      - run: npx semantic-release
+      - run: npx semantic-release --repository-url git@github.com:dominik1001/caldav-mcp.git
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LEFTHOOK: "0"
