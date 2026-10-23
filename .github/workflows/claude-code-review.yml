@@ -30,7 +30,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      # Lets the review agents read dependency types and run tsc or the tests to validate an issue.
+      # Lets the review agents read dependency types (e.g. ts-caldav's) to validate an issue.
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
@@ -59,14 +59,11 @@ jobs:
             background, and wait for all of them before you report or post.
             Every agent reads the whole diff with a single `gh pr diff <number> -R <repo>`
             call: no redirect to a file and no chained commands, which are blocked here.
-            Dependencies are installed, so agents can read types in node_modules and run
-            `npx tsc --noEmit` or `npm test` to validate an issue.
+            Dependencies are installed, so agents can read types in node_modules to
+            validate an issue. Don't run the build or the tests; CI already does.
             Claims in the PR description, such as "tests pass", are not evidence.
           # The main agent orchestrates the review; Opus follows the multi-step process.
           claude_args: --model claude-opus-5-5
-          # Temporary: shows Claude's report in the job summary so we can see why reviews stop early.
-          # Public repo: anyone can read the summary. Remove once diagnosed.
-          display_report: true
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
