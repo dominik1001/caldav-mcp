@@ -9,11 +9,11 @@ type ToolHandler = (params: {
 }) => Promise<{ content: { type: string; text: string }[] }>;
 
 const existingTodo: Todo = {
-	uid: "todo-123",
-	href: "/f/tasks/todo-123.ics",
 	etag: '"abc123"',
-	summary: "Finish report",
+	href: "/f/tasks/todo-123.ics",
 	status: "NEEDS-ACTION",
+	summary: "Finish report",
+	uid: "todo-123",
 };
 
 function makeServer() {
@@ -22,11 +22,13 @@ function makeServer() {
 	const originalRegisterTool = server.registerTool.bind(server);
 	server.registerTool = vi.fn(
 		(name: string, config: unknown, handler: ToolHandler) => {
-			if (name === "complete-todo") toolHandler = handler;
+			if (name === "complete-todo") {
+				toolHandler = handler;
+			}
 			return originalRegisterTool(name, config, handler);
-		},
+		}
 	) as typeof server.registerTool;
-	return { server, getHandler: () => toolHandler };
+	return { getHandler: () => toolHandler, server };
 }
 
 describe("registerCompleteTodo", () => {
@@ -34,18 +36,20 @@ describe("registerCompleteTodo", () => {
 		const mockClient = {
 			getTodosByHref: vi.fn().mockResolvedValue([existingTodo]),
 			updateTodo: vi.fn().mockResolvedValue({
-				uid: "todo-123",
-				href: existingTodo.href,
 				etag: '"new"',
+				href: existingTodo.href,
 				newCtag: "",
+				uid: "todo-123",
 			}),
 		};
 		const { server, getHandler } = makeServer();
 		registerCompleteTodo(mockClient as unknown as CalDAVClient, server);
 		const handler = getHandler();
-		if (!handler) throw new Error("handler not registered");
+		if (!handler) {
+			throw new Error("handler not registered");
+		}
 
-		const result = await handler({ uid: "todo-123", calendarUrl: "/f/tasks/" });
+		const result = await handler({ calendarUrl: "/f/tasks/", uid: "todo-123" });
 
 		expect(result.content[0].text).toBe("todo-123");
 		const passed = mockClient.updateTodo.mock.calls[0]?.[1];
@@ -62,10 +66,12 @@ describe("registerCompleteTodo", () => {
 		const { server, getHandler } = makeServer();
 		registerCompleteTodo(mockClient as unknown as CalDAVClient, server);
 		const handler = getHandler();
-		if (!handler) throw new Error("handler not registered");
+		if (!handler) {
+			throw new Error("handler not registered");
+		}
 
 		await expect(
-			handler({ uid: "missing", calendarUrl: "/f/tasks/" }),
+			handler({ calendarUrl: "/f/tasks/", uid: "missing" })
 		).rejects.toThrow("Todo not found: missing");
 		expect(mockClient.updateTodo).not.toHaveBeenCalled();
 	});

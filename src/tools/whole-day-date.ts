@@ -36,7 +36,7 @@ export function toWholeDayDate(iso: string): Date {
  */
 export function localDayToWholeDayDate(value: Date): Date {
 	return new Date(
-		Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()),
+		Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())
 	);
 }
 

@@ -3,22 +3,22 @@ import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
 import { hrefFor, toCalendarPath } from "./caldav-href.js";
 
-type DeleteEventInput = {
-	uid: string;
+interface DeleteEventInput {
 	calendarUrl: string;
-};
+	uid: string;
+}
 
 export const deleteEventDefinition = {
-	name: "delete-event",
 	description: "Deletes an event in the calendar specified by its URL",
 	inputSchema: {
+		calendarUrl: z.string(),
 		uid: z
 			.string()
 			.describe(
-				"Unique identifier of the event to delete (obtained from list-events)",
+				"Unique identifier of the event to delete (obtained from list-events)"
 			),
-		calendarUrl: z.string(),
 	},
+	name: "delete-event",
 	returns: "Confirmation message when the event is successfully deleted",
 } as const;
 
@@ -36,8 +36,8 @@ export function registerDeleteEvent(client: CalDAVClient, server: McpServer) {
 			await client.deleteEvent(calendarUrl, uid, etag);
 
 			return {
-				content: [{ type: "text", text: "Event deleted" }],
+				content: [{ text: "Event deleted", type: "text" }],
 			};
-		},
+		}
 	);
 }

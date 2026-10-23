@@ -85,9 +85,9 @@ Returns:
 List all events between start and end date in the calendar specified by its URL
 
 Parameters:
-- `start`: string — Start date (ISO 8601)
-- `end`: string — End date (ISO 8601)
 - `calendarUrl`: string
+- `end`: string — End date (ISO 8601)
+- `start`: string — Start date (ISO 8601)
 
 Returns:
 - A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`
@@ -97,21 +97,21 @@ Returns:
 Creates an event in the calendar specified by its URL. For all-day events, set `wholeDay` to true. For a single-day all-day event, use `start` and `end` datetimes on the same calendar date; they do not need to be identical timestamps.
 
 Parameters:
-- `summary`: string
-- `start`: string — Start datetime (ISO 8601)
-- `end`: string — End datetime (ISO 8601)
-- `wholeDay`: boolean (optional) — Create as a whole-day event
 - `calendarUrl`: string
 - `description`: string (optional)
+- `end`: string — End datetime (ISO 8601)
 - `location`: string (optional)
 - `recurrenceRule`: object (optional)
+  - `byday`: array of string (optional)
+  - `bymonth`: array of number (optional)
+  - `bymonthday`: array of number (optional)
+  - `count`: number (optional)
   - `freq`: enum (`DAILY` | `WEEKLY` | `MONTHLY` | `YEARLY`) (optional)
   - `interval`: number (optional)
-  - `count`: number (optional)
   - `until`: string (optional)
-  - `byday`: array of string (optional)
-  - `bymonthday`: array of number (optional)
-  - `bymonth`: array of number (optional)
+- `start`: string — Start datetime (ISO 8601)
+- `summary`: string
+- `wholeDay`: boolean (optional) — Create as a whole-day event
 
 Returns:
 - The unique ID of the created event
@@ -121,22 +121,22 @@ Returns:
 Updates an existing event in the calendar specified by its URL. Only provided fields are changed. For a one-day full-day event, set `wholeDay` to true and set `start` and `end` to the same calendar day.
 
 Parameters:
-- `uid`: string — Unique identifier of the event to update (obtained from list-events)
 - `calendarUrl`: string
-- `summary`: string (optional)
-- `start`: string (optional)
-- `end`: string (optional)
-- `wholeDay`: boolean (optional) — Update whether this is a whole-day event
 - `description`: string (optional)
+- `end`: string (optional)
 - `location`: string (optional)
 - `recurrenceRule`: object (optional)
+  - `byday`: array of string (optional)
+  - `bymonth`: array of number (optional)
+  - `bymonthday`: array of number (optional)
+  - `count`: number (optional)
   - `freq`: enum (`DAILY` | `WEEKLY` | `MONTHLY` | `YEARLY`) (optional)
   - `interval`: number (optional)
-  - `count`: number (optional)
   - `until`: string (optional)
-  - `byday`: array of string (optional)
-  - `bymonthday`: array of number (optional)
-  - `bymonth`: array of number (optional)
+- `start`: string (optional)
+- `summary`: string (optional)
+- `uid`: string — Unique identifier of the event to update (obtained from list-events)
+- `wholeDay`: boolean (optional) — Update whether this is a whole-day event
 
 Returns:
 - The unique ID of the updated event
@@ -146,8 +146,8 @@ Returns:
 Deletes an event in the calendar specified by its URL
 
 Parameters:
-- `uid`: string — Unique identifier of the event to delete (obtained from list-events)
 - `calendarUrl`: string
+- `uid`: string — Unique identifier of the event to delete (obtained from list-events)
 
 Returns:
 - Confirmation message when the event is successfully deleted
@@ -158,11 +158,11 @@ List tasks (VTODOs) in the calendar specified by its URL. By default returns onl
 
 Parameters:
 - `calendarUrl`: string
-- `status`: enum (`OPEN` | `ALL` | `NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional) — Filter by status. `OPEN` (default) = NEEDS-ACTION + IN-PROCESS; `ALL` = everything; or an exact status (NEEDS-ACTION, COMPLETED, IN-PROCESS, CANCELLED).
-- `due_before`: string (optional) — Only tasks with a due date at or before this (ISO 8601). Undated tasks are excluded when a due window is set.
 - `due_after`: string (optional) — Only tasks with a due date at or after this (ISO 8601). Undated tasks are excluded when a due window is set.
+- `due_before`: string (optional) — Only tasks with a due date at or before this (ISO 8601). Undated tasks are excluded when a due window is set.
 - `limit`: number (optional) — Max tasks to return (default 50, max 500)
 - `offset`: number (optional) — Tasks to skip (default 0)
+- `status`: enum (`OPEN` | `ALL` | `NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional) — Filter by status. `OPEN` (default) = NEEDS-ACTION + IN-PROCESS; `ALL` = everything; or an exact status (NEEDS-ACTION, COMPLETED, IN-PROCESS, CANCELLED).
 
 Returns:
 - An object `{ todos, total, limit, offset }` where `total` is the count before pagination. Each todo has `uid`, `summary`, `status`, and optionally `due`, `start`, `completed`, `description`, `location`.
@@ -172,13 +172,13 @@ Returns:
 Creates a task (VTODO) in the calendar specified by its URL. Only `summary` is required; a task may have no dates. Use `due` for a deadline and `start` for when work should begin.
 
 Parameters:
-- `summary`: string
 - `calendarUrl`: string
-- `due`: string (optional) — Due datetime (ISO 8601)
-- `start`: string (optional) — Start datetime (ISO 8601)
 - `description`: string (optional)
+- `due`: string (optional) — Due datetime (ISO 8601)
 - `location`: string (optional)
+- `start`: string (optional) — Start datetime (ISO 8601)
 - `status`: enum (`NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional) — Defaults to NEEDS-ACTION when omitted
+- `summary`: string
 
 Returns:
 - The unique ID of the created todo
@@ -188,14 +188,14 @@ Returns:
 Updates an existing task (VTODO) in the calendar specified by its URL. Only provided fields are changed. To mark a task done, prefer the `complete-todo` tool.
 
 Parameters:
-- `uid`: string — Unique identifier of the todo to update (from list-todos)
 - `calendarUrl`: string
-- `summary`: string (optional)
-- `due`: string (optional)
-- `start`: string (optional)
 - `description`: string (optional)
+- `due`: string (optional)
 - `location`: string (optional)
+- `start`: string (optional)
 - `status`: enum (`NEEDS-ACTION` | `COMPLETED` | `IN-PROCESS` | `CANCELLED`) (optional)
+- `summary`: string (optional)
+- `uid`: string — Unique identifier of the todo to update (from list-todos)
 
 Returns:
 - The unique ID of the updated todo
@@ -205,8 +205,8 @@ Returns:
 Marks a task (VTODO) as done. Sets its status to COMPLETED and records the completion time.
 
 Parameters:
-- `uid`: string — Unique identifier of the todo to complete (from list-todos)
 - `calendarUrl`: string
+- `uid`: string — Unique identifier of the todo to complete (from list-todos)
 
 Returns:
 - The unique ID of the completed todo
@@ -216,8 +216,8 @@ Returns:
 Deletes a task (VTODO) in the calendar specified by its URL
 
 Parameters:
-- `uid`: string — Unique identifier of the todo to delete (from list-todos)
 - `calendarUrl`: string
+- `uid`: string — Unique identifier of the todo to delete (from list-todos)
 
 Returns:
 - Confirmation message when the todo is successfully deleted

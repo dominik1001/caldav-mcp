@@ -10,31 +10,31 @@ import {
 describe("toWholeDayDate", () => {
 	test("keeps the calendar date for a UTC input", () => {
 		expect(toWholeDayDate("2026-09-30T00:00:00.000Z").toISOString()).toBe(
-			"2026-09-30T00:00:00.000Z",
+			"2026-09-30T00:00:00.000Z"
 		);
 	});
 
 	test("keeps the calendar date for a positive offset (Asia/Seoul, +09:00)", () => {
 		expect(toWholeDayDate("2026-09-30T00:00:00+09:00").toISOString()).toBe(
-			"2026-09-30T00:00:00.000Z",
+			"2026-09-30T00:00:00.000Z"
 		);
 	});
 
 	test("keeps the calendar date for a negative offset (-07:00)", () => {
 		expect(toWholeDayDate("2026-09-30T00:00:00-07:00").toISOString()).toBe(
-			"2026-09-30T00:00:00.000Z",
+			"2026-09-30T00:00:00.000Z"
 		);
 	});
 
 	test("keeps the calendar date at a month boundary (Jan 31)", () => {
 		expect(toWholeDayDate("2027-01-31T00:00:00+09:00").toISOString()).toBe(
-			"2027-01-31T00:00:00.000Z",
+			"2027-01-31T00:00:00.000Z"
 		);
 	});
 
 	test("keeps the calendar date on a leap day (Feb 29)", () => {
 		expect(toWholeDayDate("2028-02-29T00:00:00+09:00").toISOString()).toBe(
-			"2028-02-29T00:00:00.000Z",
+			"2028-02-29T00:00:00.000Z"
 		);
 	});
 });
@@ -55,7 +55,7 @@ describe("stored whole-day dates", () => {
 		const start = new Date(2026, 7, 18);
 		expect(start.toISOString()).toBe("2026-08-17T22:00:00.000Z");
 		expect(localDayToWholeDayDate(start).toISOString()).toBe(
-			"2026-08-18T00:00:00.000Z",
+			"2026-08-18T00:00:00.000Z"
 		);
 	});
 
@@ -63,7 +63,7 @@ describe("stored whole-day dates", () => {
 		// 00:30 in Berlin, still the 17th in UTC.
 		const timed = new Date("2026-08-18T00:30:00+02:00");
 		expect(localDayToWholeDayDate(timed).toISOString()).toBe(
-			"2026-08-18T00:00:00.000Z",
+			"2026-08-18T00:00:00.000Z"
 		);
 	});
 
@@ -71,8 +71,8 @@ describe("stored whole-day dates", () => {
 		expect(
 			inclusiveEndToWholeDayDate(
 				new Date(2026, 7, 23),
-				new Date(2026, 7, 18),
-			).toISOString(),
+				new Date(2026, 7, 18)
+			).toISOString()
 		).toBe("2026-08-22T00:00:00.000Z");
 	});
 
@@ -80,8 +80,8 @@ describe("stored whole-day dates", () => {
 		expect(
 			inclusiveEndToWholeDayDate(
 				new Date(2026, 9, 1),
-				new Date(2026, 8, 30),
-			).toISOString(),
+				new Date(2026, 8, 30)
+			).toISOString()
 		).toBe("2026-09-30T00:00:00.000Z");
 	});
 
@@ -89,31 +89,31 @@ describe("stored whole-day dates", () => {
 		expect(
 			inclusiveEndToWholeDayDate(
 				new Date("2026-08-18T01:30:00+02:00"),
-				new Date("2026-08-18T00:30:00+02:00"),
-			).toISOString(),
+				new Date("2026-08-18T00:30:00+02:00")
+			).toISOString()
 		).toBe("2026-08-18T00:00:00.000Z");
 	});
 
 	test("inclusiveEndToWholeDayDate never ends before the start (DTEND equal to DTSTART)", () => {
 		const day = new Date(2026, 7, 18);
 		expect(inclusiveEndToWholeDayDate(day, day).toISOString()).toBe(
-			"2026-08-18T00:00:00.000Z",
+			"2026-08-18T00:00:00.000Z"
 		);
 	});
 
 	test("carryOverWholeDayDates reshapes every date ts-caldav writes", () => {
 		const existing: Event = {
-			uid: "yearly-1",
-			href: "/f/test-calendar/yearly-1.ics",
-			etag: '"1"',
-			summary: "Yearly",
-			start: new Date(2026, 8, 30),
 			end: new Date(2026, 9, 1),
-			wholeDay: true,
-			recurrenceRule: { freq: "YEARLY", until: new Date(2030, 8, 30) },
+			etag: '"1"',
 			exdates: [new Date(2027, 8, 30)],
+			href: "/f/test-calendar/yearly-1.ics",
 			rdates: [new Date(2027, 9, 2)],
 			recurrenceId: new Date(2028, 8, 30),
+			recurrenceRule: { freq: "YEARLY", until: new Date(2030, 8, 30) },
+			start: new Date(2026, 8, 30),
+			summary: "Yearly",
+			uid: "yearly-1",
+			wholeDay: true,
 		};
 
 		const carried = carryOverWholeDayDates(existing);
@@ -131,11 +131,11 @@ describe("stored whole-day dates", () => {
 
 	test("carryOverWholeDayDates leaves out fields the event doesn't have", () => {
 		const carried = carryOverWholeDayDates({
-			uid: "one-off",
-			href: "/f/test-calendar/one-off.ics",
 			etag: '"1"',
-			summary: "One-off",
+			href: "/f/test-calendar/one-off.ics",
 			start: new Date(2026, 7, 18),
+			summary: "One-off",
+			uid: "one-off",
 			wholeDay: true,
 		});
 

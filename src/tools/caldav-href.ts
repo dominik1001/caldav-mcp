@@ -16,7 +16,9 @@ export function hrefFor(calendarUrl: string, uid: string): string {
  * shown to the LLM.
  */
 export function toAbsoluteUrl(href: string, baseUrl: string | undefined) {
-	if (!href || !baseUrl) return href;
+	if (!(href && baseUrl)) {
+		return href;
+	}
 	try {
 		const url = new URL(href, baseUrl);
 		url.username = "";
@@ -36,12 +38,16 @@ export function toAbsoluteUrl(href: string, baseUrl: string | undefined) {
  */
 export function toCalendarPath(
 	calendarUrl: string,
-	baseUrl: string | undefined,
+	baseUrl: string | undefined
 ) {
-	if (!baseUrl) return calendarUrl;
+	if (!baseUrl) {
+		return calendarUrl;
+	}
 	try {
 		const url = new URL(calendarUrl);
-		if (url.origin !== new URL(baseUrl).origin) return calendarUrl;
+		if (url.origin !== new URL(baseUrl).origin) {
+			return calendarUrl;
+		}
 		return `${url.pathname}${url.search}`;
 	} catch {
 		return calendarUrl;

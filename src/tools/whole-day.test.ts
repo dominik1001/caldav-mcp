@@ -11,14 +11,19 @@ const MENTIONS_WHOLE_DAY = /whole-day|wholeDay/i;
 
 // What the CalDAV server stores for a whole-day event: VALUE=DATE days, with
 // an exclusive DTEND.
-type Stored = { uid: string; summary: string; dtstart: string; dtend: string };
+interface Stored {
+	dtend: string;
+	dtstart: string;
+	summary: string;
+	uid: string;
+}
 
 const utcDay = (date: Date) =>
 	date.toISOString().slice(0, 10).replaceAll("-", "");
 
 function addDay(day: string): string {
 	const date = new Date(
-		`${day.slice(0, 4)}-${day.slice(4, 6)}-${day.slice(6, 8)}T00:00:00Z`,
+		`${day.slice(0, 4)}-${day.slice(4, 6)}-${day.slice(6, 8)}T00:00:00Z`
 	);
 	date.setUTCDate(date.getUTCDate() + 1);
 	return utcDay(date);
@@ -28,7 +33,7 @@ const localMidnight = (day: string) =>
 	new Date(
 		Number(day.slice(0, 4)),
 		Number(day.slice(4, 6)) - 1,
-		Number(day.slice(6, 8)),
+		Number(day.slice(6, 8))
 	);
 
 // A calendar that reads and writes whole-day events the way ts-caldav 0.4.4
@@ -39,34 +44,36 @@ function fakeCalendar(initial: Stored[] = []) {
 	const events = new Map(initial.map((e) => [e.uid, { ...e }]));
 
 	const read = (e: Stored): Event => ({
-		uid: e.uid,
-		href: `/cal/${e.uid}.ics`,
-		etag: '"1"',
-		summary: e.summary,
-		start: localMidnight(e.dtstart),
 		end: localMidnight(e.dtend),
+		etag: '"1"',
+		href: `/cal/${e.uid}.ics`,
+		start: localMidnight(e.dtstart),
+		summary: e.summary,
+		uid: e.uid,
 		wholeDay: true,
 	});
 	const write = (uid: string, event: Partial<Event>) => {
-		if (!event.wholeDay || !event.start) throw new Error("whole-day only");
+		if (!(event.wholeDay && event.start)) {
+			throw new Error("whole-day only");
+		}
 		const dtstart = utcDay(event.start);
 		events.set(uid, {
-			uid,
-			summary: event.summary ?? "",
-			dtstart,
 			dtend: addDay(event.end ? utcDay(event.end) : dtstart),
+			dtstart,
+			summary: event.summary ?? "",
+			uid,
 		});
-		return { uid, href: `/cal/${uid}.ics`, etag: '"2"', newCtag: "" };
+		return { etag: '"2"', href: `/cal/${uid}.ics`, newCtag: "", uid };
 	};
 
 	const client = {
+		createEvent: async (_url: string, event: Partial<Event>) =>
+			write("new-1", event),
 		getEvents: async () => [...events.values()].map(read),
 		getEventsByHref: async (_url: string, hrefs: string[]) =>
 			[...events.values()]
 				.filter((e) => hrefs.some((h) => h.endsWith(`/${e.uid}.ics`)))
 				.map(read),
-		createEvent: async (_url: string, event: Partial<Event>) =>
-			write("new-1", event),
 		updateEvent: async (_url: string, event: Event) => write(event.uid, event),
 	};
 	return { client: client as unknown as CalDAVClient, events };
@@ -85,18 +92,20 @@ async function connect(client: CalDAVClient) {
 }
 
 async function call(mcp: Client, name: string, args: Record<string, unknown>) {
-	const result = await mcp.callTool({ name, arguments: args });
+	const result = await mcp.callTool({ arguments: args, name });
 	const [first] = result.content as { type: string; text: string }[];
-	if (result.isError) throw new Error(`${name} failed: ${first?.text}`);
+	if (result.isError) {
+		throw new Error(`${name} failed: ${first?.text}`);
+	}
 	return first?.text ?? "";
 }
 
 // A trip from 2026-08-25 through 2026-08-29.
 const trip: Stored = {
-	uid: "trip-1",
-	summary: "Trip",
-	dtstart: "20260825",
 	dtend: "20260830",
+	dtstart: "20260825",
+	summary: "Trip",
+	uid: "trip-1",
 };
 
 // The `test.fails` cases are known bugs (see PR #100's review). Each one
@@ -107,16 +116,16 @@ describe("whole-day events through the MCP client", () => {
 		const mcp = await connect(client);
 
 		await call(mcp, "create-event", {
-			summary: "Holiday",
-			start: "2026-08-25T00:00:00Z",
-			end: "2026-08-25T00:00:00Z",
-			wholeDay: true,
 			calendarUrl: "/cal/",
+			end: "2026-08-25T00:00:00Z",
+			start: "2026-08-25T00:00:00Z",
+			summary: "Holiday",
+			wholeDay: true,
 		});
 
 		expect(events.get("new-1")).toMatchObject({
-			dtstart: "20260825",
 			dtend: "20260826",
+			dtstart: "20260825",
 		});
 	});
 
@@ -126,16 +135,16 @@ describe("whole-day events through the MCP client", () => {
 
 		// Midnight in Berlin, the way a caller there would write the 25th.
 		await call(mcp, "create-event", {
-			summary: "Holiday",
-			start: "2026-08-25T00:00:00+02:00",
-			end: "2026-08-25T00:00:00+02:00",
-			wholeDay: true,
 			calendarUrl: "/cal/",
+			end: "2026-08-25T00:00:00+02:00",
+			start: "2026-08-25T00:00:00+02:00",
+			summary: "Holiday",
+			wholeDay: true,
 		});
 
 		expect(events.get("new-1")).toMatchObject({
-			dtstart: "20260825",
 			dtend: "20260826",
+			dtstart: "20260825",
 		});
 	});
 
@@ -144,15 +153,15 @@ describe("whole-day events through the MCP client", () => {
 		const mcp = await connect(client);
 
 		await call(mcp, "update-event", {
-			uid: "trip-1",
 			calendarUrl: "/cal/",
 			summary: "Trip to Rome",
+			uid: "trip-1",
 		});
 
 		expect(events.get("trip-1")).toMatchObject({
-			summary: "Trip to Rome",
-			dtstart: "20260825",
 			dtend: "20260830",
+			dtstart: "20260825",
+			summary: "Trip to Rome",
 		});
 	});
 
@@ -162,23 +171,23 @@ describe("whole-day events through the MCP client", () => {
 
 		const [listed] = JSON.parse(
 			await call(mcp, "list-events", {
-				start: "2026-08-01T00:00:00Z",
-				end: "2026-09-01T00:00:00Z",
 				calendarUrl: "/cal/",
-			}),
+				end: "2026-09-01T00:00:00Z",
+				start: "2026-08-01T00:00:00Z",
+			})
 		);
 		await call(mcp, "update-event", {
-			uid: listed.uid,
 			calendarUrl: "/cal/",
-			start: listed.start,
 			end: listed.end,
-			wholeDay: true,
+			start: listed.start,
 			summary: "Trip to Rome",
+			uid: listed.uid,
+			wholeDay: true,
 		});
 
 		expect(events.get("trip-1")).toMatchObject({
-			dtstart: "20260825",
 			dtend: "20260830",
+			dtstart: "20260825",
 		});
 	});
 

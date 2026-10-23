@@ -4,33 +4,33 @@ import { z } from "zod";
 import { hrefFor, toCalendarPath } from "./caldav-href.js";
 import { type TodoStatus, todoStatusSchema } from "./todo-status.js";
 
-type UpdateTodoInput = {
-	uid: string;
+interface UpdateTodoInput {
 	calendarUrl: string;
-	summary?: string | undefined;
-	due?: string | undefined;
-	start?: string | undefined;
 	description?: string | undefined;
+	due?: string | undefined;
 	location?: string | undefined;
+	start?: string | undefined;
 	status?: TodoStatus | undefined;
-};
+	summary?: string | undefined;
+	uid: string;
+}
 
 export const updateTodoDefinition = {
-	name: "update-todo",
 	description:
 		"Updates an existing task (VTODO) in the calendar specified by its URL. Only provided fields are changed. To mark a task done, prefer the `complete-todo` tool.",
 	inputSchema: {
+		calendarUrl: z.string(),
+		description: z.string().optional(),
+		due: z.string().datetime({ offset: true }).optional(),
+		location: z.string().optional(),
+		start: z.string().datetime({ offset: true }).optional(),
+		status: todoStatusSchema.optional(),
+		summary: z.string().optional(),
 		uid: z
 			.string()
 			.describe("Unique identifier of the todo to update (from list-todos)"),
-		calendarUrl: z.string(),
-		summary: z.string().optional(),
-		due: z.string().datetime({ offset: true }).optional(),
-		start: z.string().datetime({ offset: true }).optional(),
-		description: z.string().optional(),
-		location: z.string().optional(),
-		status: todoStatusSchema.optional(),
 	},
+	name: "update-todo",
 	returns: "The unique ID of the updated todo",
 } as const;
 
@@ -78,8 +78,8 @@ export function registerUpdateTodo(client: CalDAVClient, server: McpServer) {
 			});
 
 			return {
-				content: [{ type: "text", text: updated.uid }],
+				content: [{ text: updated.uid, type: "text" }],
 			};
-		},
+		}
 	);
 }

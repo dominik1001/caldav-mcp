@@ -8,16 +8,16 @@ const BARE_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const RRULE_LINE = /^RRULE:(.*)$/m;
 const RRULE_UNTIL = /(?:^|;)UNTIL=([^;]*)/;
 
-type ListedCalendar = {
+interface ListedCalendar {
 	displayName?: string;
 	supportedComponents?: string[];
 	url: string;
-};
+}
 
-type ToolResult = {
+interface ToolResult {
 	content?: Array<{ type: string; text: string }>;
 	isError?: boolean;
-};
+}
 
 function unwrapText(result: unknown): string {
 	const r = result as ToolResult;
@@ -60,7 +60,9 @@ function expectIcsProp(ics: string, name: string, expectedValue: string) {
 // in any TZ (the server is spawned with this process's TZ). A bare date is
 // taken as is.
 function listedCalendarDate(value: string): string {
-	if (BARE_DATE.test(value)) return value;
+	if (BARE_DATE.test(value)) {
+		return value;
+	}
 	const d = new Date(value);
 	return [
 		d.getFullYear(),
@@ -73,35 +75,37 @@ async function smokeWholeDayEvents(client: Client, calendarUrl: string) {
 	// Whole-day dates are checked against the stored ICS: list-events does not
 	// show VALUE=DATE or the RRULE, and both are where the off-by-ones hide.
 	const auth = `Basic ${Buffer.from(
-		`${requireEnv("CALDAV_USERNAME")}:${requireEnv("CALDAV_PASSWORD")}`,
+		`${requireEnv("CALDAV_USERNAME")}:${requireEnv("CALDAV_PASSWORD")}`
 	).toString("base64")}`;
 	async function fetchIcs(eventUid: string): Promise<string> {
 		const url = new URL(
 			hrefFor(calendarUrl, eventUid),
-			requireEnv("CALDAV_BASE_URL"),
+			requireEnv("CALDAV_BASE_URL")
 		);
 		const res = await fetch(url, { headers: { Authorization: auth } });
-		if (!res.ok) throw new Error(`GET ${url} failed: ${res.status}`);
+		if (!res.ok) {
+			throw new Error(`GET ${url} failed: ${res.status}`);
+		}
 		return res.text();
 	}
 
 	const convertUid = unwrapText(
 		await client.callTool({
-			name: "create-event",
 			arguments: {
-				summary: "caldav-mcp smoke timed to whole-day",
-				start: "2030-08-18T10:00:00Z",
-				end: "2030-08-18T11:00:00Z",
 				calendarUrl,
+				end: "2030-08-18T11:00:00Z",
+				start: "2030-08-18T10:00:00Z",
+				summary: "caldav-mcp smoke timed to whole-day",
 			},
-		}),
+			name: "create-event",
+		})
 	);
 	try {
 		unwrapText(
 			await client.callTool({
+				arguments: { calendarUrl, uid: convertUid, wholeDay: true },
 				name: "update-event",
-				arguments: { uid: convertUid, calendarUrl, wholeDay: true },
-			}),
+			})
 		);
 		const ics = await fetchIcs(convertUid);
 		expectIcsProp(ics, "DTSTART", "VALUE=DATE:20300818");
@@ -109,8 +113,8 @@ async function smokeWholeDayEvents(client: Client, calendarUrl: string) {
 		log("converted timed event to a one-day whole-day event");
 	} finally {
 		await client.callTool({
+			arguments: { calendarUrl, uid: convertUid },
 			name: "delete-event",
-			arguments: { uid: convertUid, calendarUrl },
 		});
 	}
 
@@ -141,103 +145,111 @@ async function smokeWholeDayEvents(client: Client, calendarUrl: string) {
 		const windowEvents = JSON.parse(
 			unwrapText(
 				await client.callTool({
-					name: "list-events",
 					arguments: {
-						start: windowStart.toISOString(),
-						end: windowEnd.toISOString(),
 						calendarUrl,
+						end: windowEnd.toISOString(),
+						start: windowStart.toISOString(),
 					},
-				}),
-			),
+					name: "list-events",
+				})
+			)
 		) as Array<{ uid: string; start: string; location?: string }>;
 		const event = windowEvents.find((e) => e.uid === eventUid);
-		if (!event) throw new Error(`Whole-day event ${eventUid} not found`);
+		if (!event) {
+			throw new Error(`Whole-day event ${eventUid} not found`);
+		}
 		return event;
 	}
 	function expectOffsetWholeDayDates(
 		ics: string,
 		stage: string,
-		checkUntil: boolean,
+		checkUntil: boolean
 	) {
 		try {
 			expectIcsProp(ics, "DTSTART", offsetWholeDayDtstart);
 			expectIcsProp(ics, "DTEND", offsetWholeDayDtend);
-			if (!checkUntil) return;
+			if (!checkUntil) {
+				return;
+			}
 			// ts-caldav writes a whole-day UNTIL in extended form (2030-10-26),
 			// so compare the calendar day, not the spelling.
 			const rrule = ics.match(RRULE_LINE)?.[1]?.trim() ?? "";
 			const until = rrule.match(RRULE_UNTIL)?.[1] ?? "";
-			if (until.replaceAll("-", "") !== offsetWholeDayUntil.replaceAll("-", ""))
+			if (
+				until.replaceAll("-", "") !== offsetWholeDayUntil.replaceAll("-", "")
+			) {
 				throw new Error(
-					`RRULE UNTIL mismatch: ${until} !== ${offsetWholeDayUntil}\n${ics}`,
+					`RRULE UNTIL mismatch: ${until} !== ${offsetWholeDayUntil}\n${ics}`
 				);
+			}
 		} catch (err) {
 			throw new Error(
 				`Whole-day dates moved ${stage} (input ${offsetWholeDayIso}): ${(err as Error).message}`,
-				{ cause: err },
+				{ cause: err }
 			);
 		}
 	}
 
 	const offsetWholeDayUid = unwrapText(
 		await client.callTool({
-			name: "create-event",
 			arguments: {
-				summary: `caldav-mcp smoke whole-day ${offsetWholeDayDate}`,
-				start: offsetWholeDayIso,
+				calendarUrl,
 				end: offsetWholeDayIso,
-				wholeDay: true,
 				recurrenceRule: {
 					freq: "YEARLY",
 					until: `${offsetWholeDayUntil}T00:00:00+09:00`,
 				},
-				calendarUrl,
+				start: offsetWholeDayIso,
+				summary: `caldav-mcp smoke whole-day ${offsetWholeDayDate}`,
+				wholeDay: true,
 			},
-		}),
+			name: "create-event",
+		})
 	);
 	log("created whole-day event", {
-		uid: offsetWholeDayUid,
 		input: offsetWholeDayIso,
+		uid: offsetWholeDayUid,
 	});
 	try {
 		const offsetWholeDayListed = await listOffsetWholeDay(offsetWholeDayUid);
 		const offsetWholeDayListedDate = listedCalendarDate(
-			offsetWholeDayListed.start,
+			offsetWholeDayListed.start
 		);
 		if (offsetWholeDayListedDate !== offsetWholeDayDate) {
 			throw new Error(
-				`Whole-day event date shifted on create: expected ${offsetWholeDayDate}, got ${offsetWholeDayListedDate} (input ${offsetWholeDayIso})`,
+				`Whole-day event date shifted on create: expected ${offsetWholeDayDate}, got ${offsetWholeDayListedDate} (input ${offsetWholeDayIso})`
 			);
 		}
 		expectOffsetWholeDayDates(
 			await fetchIcs(offsetWholeDayUid),
 			"on create",
-			true,
+			true
 		);
 		log("verified whole-day event date", offsetWholeDayListedDate);
 
 		const offsetWholeDayLocation = "caldav-mcp smoke location";
 		unwrapText(
 			await client.callTool({
-				name: "update-event",
 				arguments: {
-					uid: offsetWholeDayUid,
 					calendarUrl,
 					location: offsetWholeDayLocation,
+					uid: offsetWholeDayUid,
 				},
-			}),
+				name: "update-event",
+			})
 		);
 		const offsetWholeDayUpdated = await listOffsetWholeDay(offsetWholeDayUid);
-		if (offsetWholeDayUpdated.location !== offsetWholeDayLocation)
+		if (offsetWholeDayUpdated.location !== offsetWholeDayLocation) {
 			throw new Error(
-				`Location not updated: ${offsetWholeDayUpdated.location} !== ${offsetWholeDayLocation}`,
+				`Location not updated: ${offsetWholeDayUpdated.location} !== ${offsetWholeDayLocation}`
 			);
+		}
 		const offsetWholeDayUpdatedDate = listedCalendarDate(
-			offsetWholeDayUpdated.start,
+			offsetWholeDayUpdated.start
 		);
 		if (offsetWholeDayUpdatedDate !== offsetWholeDayDate) {
 			throw new Error(
-				`Whole-day event date shifted on a location-only update: expected ${offsetWholeDayDate}, got ${offsetWholeDayUpdatedDate}`,
+				`Whole-day event date shifted on a location-only update: expected ${offsetWholeDayDate}, got ${offsetWholeDayUpdatedDate}`
 			);
 		}
 		expectOffsetWholeDayDates(
@@ -247,13 +259,13 @@ async function smokeWholeDayEvents(client: Client, calendarUrl: string) {
 			// (2030-10-26) back wrong (ical.js parses it as 2029-10-31), so an
 			// update that carries the rule over can't keep it, with or without
 			// this conversion. That needs fixing in ts-caldav's writer.
-			false,
+			false
 		);
 		log("verified whole-day dates after a location-only update");
 	} finally {
 		await client.callTool({
+			arguments: { calendarUrl, uid: offsetWholeDayUid },
 			name: "delete-event",
-			arguments: { uid: offsetWholeDayUid, calendarUrl },
 		});
 		log("deleted whole-day event");
 	}
@@ -264,107 +276,111 @@ async function smokeTodos(client: Client, calendars: ListedCalendar[]) {
 	// task-capable collection. Tasks often live in a separate VTODO calendar;
 	// if the account has none, skip rather than fail (events already verified).
 	const todoCalendar = calendars.find((c) =>
-		c.supportedComponents?.includes("VTODO"),
+		c.supportedComponents?.includes("VTODO")
 	);
-	if (!todoCalendar) {
-		log("no VTODO-capable calendar found, skipping todo round-trip");
-	} else {
+	if (todoCalendar) {
 		const todoCalendarUrl = todoCalendar.url;
 		log("using todo calendar", todoCalendar.displayName ?? todoCalendarUrl);
 
 		const todoSummary = `caldav-mcp smoke todo ${new Date().toISOString()}`;
 		const todoUid = unwrapText(
 			await client.callTool({
-				name: "create-todo",
 				arguments: {
-					summary: todoSummary,
 					calendarUrl: todoCalendarUrl,
 					due: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+					summary: todoSummary,
 				},
-			}),
+				name: "create-todo",
+			})
 		);
 		log("created todo", todoUid);
 
 		const listedTodos = JSON.parse(
 			unwrapText(
 				await client.callTool({
-					name: "list-todos",
 					arguments: { calendarUrl: todoCalendarUrl, status: "ALL" },
-				}),
-			),
+					name: "list-todos",
+				})
+			)
 		) as { todos: Array<{ uid: string; summary: string; status: string }> };
 		const foundTodo = listedTodos.todos.find((t) => t.uid === todoUid);
-		if (!foundTodo)
+		if (!foundTodo) {
 			throw new Error(`Created todo ${todoUid} not found in list-todos`);
-		if (foundTodo.summary !== todoSummary)
+		}
+		if (foundTodo.summary !== todoSummary) {
 			throw new Error(
-				`Todo summary mismatch: ${foundTodo.summary} !== ${todoSummary}`,
+				`Todo summary mismatch: ${foundTodo.summary} !== ${todoSummary}`
 			);
-		log("listed todo", { uid: foundTodo.uid, status: foundTodo.status });
+		}
+		log("listed todo", { status: foundTodo.status, uid: foundTodo.uid });
 
 		unwrapText(
 			await client.callTool({
+				arguments: { calendarUrl: todoCalendarUrl, uid: todoUid },
 				name: "complete-todo",
-				arguments: { uid: todoUid, calendarUrl: todoCalendarUrl },
-			}),
+			})
 		);
 		const completed = JSON.parse(
 			unwrapText(
 				await client.callTool({
-					name: "list-todos",
 					arguments: { calendarUrl: todoCalendarUrl, status: "COMPLETED" },
-				}),
-			),
+					name: "list-todos",
+				})
+			)
 		) as { todos: Array<{ uid: string; status: string }> };
 		if (
 			!completed.todos.some(
-				(t) => t.uid === todoUid && t.status === "COMPLETED",
+				(t) => t.uid === todoUid && t.status === "COMPLETED"
 			)
-		)
+		) {
 			throw new Error(`Todo ${todoUid} not COMPLETED after complete-todo`);
+		}
 		log("completed todo", todoUid);
 
 		unwrapText(
 			await client.callTool({
-				name: "update-todo",
 				arguments: {
-					uid: todoUid,
 					calendarUrl: todoCalendarUrl,
 					summary: `${todoSummary} (updated)`,
+					uid: todoUid,
 				},
-			}),
+				name: "update-todo",
+			})
 		);
 		log("updated todo", todoUid);
 
 		unwrapText(
 			await client.callTool({
+				arguments: { calendarUrl: todoCalendarUrl, uid: todoUid },
 				name: "delete-todo",
-				arguments: { uid: todoUid, calendarUrl: todoCalendarUrl },
-			}),
+			})
 		);
 		const afterTodos = JSON.parse(
 			unwrapText(
 				await client.callTool({
-					name: "list-todos",
 					arguments: { calendarUrl: todoCalendarUrl, status: "ALL" },
-				}),
-			),
+					name: "list-todos",
+				})
+			)
 		) as { todos: Array<{ uid: string }> };
-		if (afterTodos.todos.some((t) => t.uid === todoUid))
+		if (afterTodos.todos.some((t) => t.uid === todoUid)) {
 			throw new Error(`Todo ${todoUid} still present after delete`);
+		}
 		log("verified todo deletion");
+	} else {
+		log("no VTODO-capable calendar found, skipping todo round-trip");
 	}
 }
 
 async function main() {
 	const transport = new StdioClientTransport({
-		command: "node",
 		args: ["dist/index.js"],
+		command: "node",
 		env: {
-			PATH: process.env.PATH ?? "",
 			CALDAV_BASE_URL: requireEnv("CALDAV_BASE_URL"),
-			CALDAV_USERNAME: requireEnv("CALDAV_USERNAME"),
 			CALDAV_PASSWORD: requireEnv("CALDAV_PASSWORD"),
+			CALDAV_USERNAME: requireEnv("CALDAV_USERNAME"),
+			PATH: process.env.PATH ?? "",
 			// Whole-day dates only shift east of UTC, so CI pins a zone here.
 			...(process.env.TZ && { TZ: process.env.TZ }),
 		},
@@ -391,24 +407,29 @@ async function main() {
 		"delete-todo",
 	];
 	for (const name of expectedTools) {
-		if (!toolNames.includes(name)) throw new Error(`Missing tool: ${name}`);
+		if (!toolNames.includes(name)) {
+			throw new Error(`Missing tool: ${name}`);
+		}
 	}
 
 	const calendarsRaw = unwrapText(
-		await client.callTool({ name: "list-calendars", arguments: {} }),
+		await client.callTool({ arguments: {}, name: "list-calendars" })
 	);
 	const calendars = JSON.parse(calendarsRaw) as ListedCalendar[];
-	if (calendars.length === 0) throw new Error("No calendars returned");
+	if (calendars.length === 0) {
+		throw new Error("No calendars returned");
+	}
 	const calendarUrl = calendars[0].url;
 	log("using calendar", calendars[0].displayName ?? calendarUrl);
 
 	// Agents pass this URL back verbatim, so it must be absolute (#81). The
 	// round-trips below therefore run on the absolute form. The origin may
 	// differ from CALDAV_BASE_URL when the calendar home lives on another host.
-	if (!ABSOLUTE_URL.test(calendarUrl))
+	if (!ABSOLUTE_URL.test(calendarUrl)) {
 		throw new Error(
-			`list-calendars returned ${calendarUrl}, expected an absolute URL`,
+			`list-calendars returned ${calendarUrl}, expected an absolute URL`
 		);
+	}
 	const calendarPath = new URL(calendarUrl).pathname;
 
 	const start = new Date(Date.now() + 60 * 60 * 1000);
@@ -417,66 +438,70 @@ async function main() {
 
 	const uid = unwrapText(
 		await client.callTool({
-			name: "create-event",
 			arguments: {
-				summary,
-				start: start.toISOString(),
-				end: end.toISOString(),
 				calendarUrl,
+				end: end.toISOString(),
+				start: start.toISOString(),
+				summary,
 			},
-		}),
+			name: "create-event",
+		})
 	);
 	log("created event", uid);
 
 	const listed = JSON.parse(
 		unwrapText(
 			await client.callTool({
-				name: "list-events",
 				arguments: {
-					start: new Date(start.getTime() - 60_000).toISOString(),
-					end: new Date(end.getTime() + 60_000).toISOString(),
 					calendarUrl,
+					end: new Date(end.getTime() + 60_000).toISOString(),
+					start: new Date(start.getTime() - 60_000).toISOString(),
 				},
-			}),
-		),
+				name: "list-events",
+			})
+		)
 	) as Array<{ uid: string; summary: string }>;
 	const found = listed.find((e) => e.uid === uid);
-	if (!found) throw new Error(`Created event ${uid} not found in list-events`);
-	if (found.summary !== summary)
+	if (!found) {
+		throw new Error(`Created event ${uid} not found in list-events`);
+	}
+	if (found.summary !== summary) {
 		throw new Error(`Summary mismatch: ${found.summary} !== ${summary}`);
-	log("listed event", { uid: found.uid, summary: found.summary });
+	}
+	log("listed event", { summary: found.summary, uid: found.uid });
 
 	const updatedSummary = `${summary} (updated)`;
 	const updatedUid = unwrapText(
 		await client.callTool({
+			arguments: { calendarUrl, summary: updatedSummary, uid },
 			name: "update-event",
-			arguments: { uid, calendarUrl, summary: updatedSummary },
-		}),
+		})
 	);
 	log("updated event", updatedUid);
 
 	const deleted = unwrapText(
 		await client.callTool({
+			arguments: { calendarUrl, uid: updatedUid },
 			name: "delete-event",
-			arguments: { uid: updatedUid, calendarUrl },
-		}),
+		})
 	);
 	log("deleted event", deleted);
 
 	const after = JSON.parse(
 		unwrapText(
 			await client.callTool({
-				name: "list-events",
 				arguments: {
-					start: new Date(start.getTime() - 60_000).toISOString(),
-					end: new Date(end.getTime() + 60_000).toISOString(),
 					calendarUrl,
+					end: new Date(end.getTime() + 60_000).toISOString(),
+					start: new Date(start.getTime() - 60_000).toISOString(),
 				},
-			}),
-		),
+				name: "list-events",
+			})
+		)
 	) as Array<{ uid: string }>;
-	if (after.some((e) => e.uid === updatedUid))
+	if (after.some((e) => e.uid === updatedUid)) {
 		throw new Error(`Event ${updatedUid} still present after delete`);
+	}
 	log("verified deletion");
 
 	// Callers holding a server-relative path from before #81 must keep working.
@@ -489,32 +514,32 @@ async function main() {
 	) {
 		const relativeUid = unwrapText(
 			await client.callTool({
-				name: "create-event",
 				arguments: {
-					summary: `${summary} (relative path)`,
-					start: start.toISOString(),
-					end: end.toISOString(),
 					calendarUrl: calendarPath,
+					end: end.toISOString(),
+					start: start.toISOString(),
+					summary: `${summary} (relative path)`,
 				},
-			}),
+				name: "create-event",
+			})
 		);
 		try {
 			unwrapText(
 				await client.callTool({
-					name: "update-event",
 					arguments: {
-						uid: relativeUid,
 						calendarUrl: calendarPath,
 						summary: `${summary} (relative path, updated)`,
+						uid: relativeUid,
 					},
-				}),
+					name: "update-event",
+				})
 			);
 		} finally {
 			unwrapText(
 				await client.callTool({
+					arguments: { calendarUrl: calendarPath, uid: relativeUid },
 					name: "delete-event",
-					arguments: { uid: relativeUid, calendarUrl: calendarPath },
-				}),
+				})
 			);
 		}
 		log("round-tripped event via server-relative path", calendarPath);
@@ -530,26 +555,26 @@ async function main() {
 	const recurEnd = new Date(recurStart.getTime() + 30 * 60 * 1000);
 	const recurUid = unwrapText(
 		await client.callTool({
-			name: "create-event",
 			arguments: {
-				summary: `caldav-mcp smoke recur ${recurStart.toISOString()}`,
-				start: recurStart.toISOString(),
-				end: recurEnd.toISOString(),
 				calendarUrl,
+				end: recurEnd.toISOString(),
 				recurrenceRule: {
-					freq: "DAILY",
 					count: 3,
+					freq: "DAILY",
 				},
+				start: recurStart.toISOString(),
+				summary: `caldav-mcp smoke recur ${recurStart.toISOString()}`,
 			},
-		}),
+			name: "create-event",
+		})
 	);
 	log("created recurring event", recurUid);
 
 	unwrapText(
 		await client.callTool({
+			arguments: { calendarUrl, uid: recurUid },
 			name: "delete-event",
-			arguments: { uid: recurUid, calendarUrl },
-		}),
+		})
 	);
 	log("deleted recurring event");
 
