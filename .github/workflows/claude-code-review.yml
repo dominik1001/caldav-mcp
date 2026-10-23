@@ -44,6 +44,11 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # DEBUG, canary PR #128 only, never merge: the run's own token lets this edited
+          # workflow run (the app token requires a workflow identical to main's), and
+          # show_full_output puts the transcript in the log.
+          github_token: ${{ github.token }}
+          show_full_output: true
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           # Without --comment the plugin only prints its findings to the (hidden) action output.
