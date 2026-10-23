@@ -1,3 +1,18 @@
+## [0.10.2](https://github.com/dominik1001/caldav-mcp/compare/v0.10.1...v0.10.2) (2026-10-23)
+
+
+### Bug Fixes
+
+* carry every whole-day date over an update, not just start/end ([a8e6626](https://github.com/dominik1001/caldav-mcp/commit/a8e662641402e8c947f6620f0a73063e2fbf5f6c))
+* keep whole-day dates on their calendar day for create and update ([c73d77a](https://github.com/dominik1001/caldav-mcp/commit/c73d77a563242ea40c00c479edc44d2bdbf2bedc)), closes [#91](https://github.com/dominik1001/caldav-mcp/issues/91)
+
+## [0.10.1](https://github.com/dominik1001/caldav-mcp/compare/v0.10.0...v0.10.1) (2026-10-23)
+
+
+### Reverts
+
+* restore Claude Code Review's prompt rules and Opus main agent ([b402560](https://github.com/dominik1001/caldav-mcp/commit/b4025600374b74f824aebd3f515aba208662d448)), closes [#123](https://github.com/dominik1001/caldav-mcp/issues/123) [#131](https://github.com/dominik1001/caldav-mcp/issues/131) [#128](https://github.com/dominik1001/caldav-mcp/issues/128)
+
 # [0.10.0](https://github.com/dominik1001/caldav-mcp/compare/v0.9.2...v0.10.0) (2026-07-01)
 
 

@@ -1,16 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CalDAVClient, RecurrenceRule } from "ts-caldav";
+import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
-
-type RecurrenceRuleInput = {
-	freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | undefined;
-	interval?: number | undefined;
-	count?: number | undefined;
-	until?: string | undefined;
-	byday?: string[] | undefined;
-	bymonthday?: number[] | undefined;
-	bymonth?: number[] | undefined;
-};
+import {
+	type RecurrenceRuleInput,
+	recurrenceRuleSchema,
+	toRecurrenceRule,
+} from "./recurrence-rule.js";
+import { toWholeDayDate } from "./whole-day-date.js";
 
 type CreateEventInput = {
 	summary: string;
@@ -22,28 +18,6 @@ type CreateEventInput = {
 	location?: string | undefined;
 	recurrenceRule?: RecurrenceRuleInput | undefined;
 };
-
-function toRecurrenceRule(r: RecurrenceRuleInput): RecurrenceRule {
-	const out: RecurrenceRule = {};
-	if (r.freq !== undefined) out.freq = r.freq;
-	if (r.interval !== undefined) out.interval = r.interval;
-	if (r.count !== undefined) out.count = r.count;
-	if (r.until !== undefined) out.until = new Date(r.until);
-	if (r.byday !== undefined) out.byday = r.byday;
-	if (r.bymonthday !== undefined) out.bymonthday = r.bymonthday;
-	if (r.bymonth !== undefined) out.bymonth = r.bymonth;
-	return out;
-}
-
-const recurrenceRuleSchema = z.object({
-	freq: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]).optional(),
-	interval: z.number().optional(),
-	count: z.number().optional(),
-	until: z.string().datetime({ offset: true }).optional(), // ISO 8601 string
-	byday: z.array(z.string()).optional(), // e.g. ["MO", "TU"]
-	bymonthday: z.array(z.number()).optional(),
-	bymonth: z.array(z.number()).optional(),
-});
 
 export const createEventDefinition = {
 	name: "create-event",
@@ -88,13 +62,13 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 			} = args;
 			const event = await client.createEvent(calendarUrl, {
 				summary: summary,
-				start: new Date(start),
-				end: new Date(end),
+				start: wholeDay ? toWholeDayDate(start) : new Date(start),
+				end: wholeDay ? toWholeDayDate(end) : new Date(end),
 				...(wholeDay !== undefined && { wholeDay }),
 				...(description !== undefined && { description }),
 				...(location !== undefined && { location }),
 				...(recurrenceRule !== undefined && {
-					recurrenceRule: toRecurrenceRule(recurrenceRule),
+					recurrenceRule: toRecurrenceRule(recurrenceRule, wholeDay),
 				}),
 			});
 

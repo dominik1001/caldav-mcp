@@ -11,3 +11,4 @@ dist
 
 # test coverage
 coverage
+.claude/worktrees

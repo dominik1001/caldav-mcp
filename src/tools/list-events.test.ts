@@ -116,4 +116,57 @@ describe("registerListEvents", () => {
 		expect(events[1]).not.toHaveProperty("description");
 		expect(events[1]).not.toHaveProperty("location");
 	});
+
+	test("includes events that started before the window but overlap it", async () => {
+		const mockClient = {
+			getEvents: vi.fn().mockResolvedValue([
+				{
+					uid: "spans-window",
+					summary: "Conference",
+					start: new Date("2026-08-20T09:00:00Z"),
+					end: new Date("2026-08-22T09:00:00Z"),
+				},
+				{
+					uid: "running-at-start",
+					summary: "Late meeting",
+					start: new Date("2026-08-20T23:30:00Z"),
+					end: new Date("2026-08-21T00:30:00Z"),
+				},
+				{
+					uid: "inside-window",
+					summary: "Lunch",
+					start: new Date("2026-08-21T12:00:00Z"),
+					end: new Date("2026-08-21T13:00:00Z"),
+				},
+			]),
+		};
+
+		let toolHandler: ToolHandler | null = null;
+		const server = new McpServer({ name: "test-server", version: "0.1.0" });
+		const originalRegisterTool = server.registerTool.bind(server);
+		server.registerTool = vi.fn(
+			(name: string, config: unknown, handler: ToolHandler) => {
+				if (name === "list-events") toolHandler = handler;
+				return originalRegisterTool(name, config, handler);
+			},
+		) as typeof server.registerTool;
+
+		registerListEvents(mockClient as CalDAVClient, server);
+		expect(toolHandler).toBeDefined();
+
+		const result = await toolHandler({
+			calendarUrl: "/test/calendar/",
+			start: "2026-08-21T00:00:00Z",
+			end: "2026-08-22T00:00:00Z",
+		});
+
+		const events = JSON.parse(result.content[0].text);
+		expect(events.map((e: { uid: string }) => e.uid)).toEqual([
+			"spans-window",
+			"running-at-start",
+			"inside-window",
+		]);
+		expect(events[0]).toHaveProperty("start", "2026-08-20T09:00:00.000Z");
+		expect(events[0]).toHaveProperty("end", "2026-08-22T09:00:00.000Z");
+	});
 });

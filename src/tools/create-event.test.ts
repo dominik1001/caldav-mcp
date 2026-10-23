@@ -126,6 +126,36 @@ describe("registerCreateEvent", () => {
 		expect(passed?.wholeDay).toBe(false);
 	});
 
+	test("preserves the calendar date for whole-day events with a positive UTC offset", async () => {
+		const mockClient = {
+			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerCreateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) throw new Error("handler not registered");
+
+		await handler({
+			summary: "Quarterly reminder",
+			start: "2026-09-30T00:00:00+09:00",
+			end: "2026-09-30T00:00:00+09:00",
+			calendarUrl: "/f/test-calendar/",
+			wholeDay: true,
+			recurrenceRule: {
+				freq: "YEARLY",
+				until: "2030-09-30T00:00:00+09:00",
+			},
+		});
+
+		const passed = mockClient.createEvent.mock.calls[0]?.[1];
+		expect(passed?.start.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+		expect(passed?.end.toISOString()).toBe("2026-09-30T00:00:00.000Z");
+		expect(passed?.recurrenceRule?.until.toISOString()).toBe(
+			"2030-09-30T00:00:00.000Z",
+		);
+	});
+
 	test("omits wholeDay when not provided", async () => {
 		const mockClient = {
 			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),

@@ -2,26 +2,28 @@ name: Claude Code Review
 
 on:
   pull_request:
+    # `ready_for_review` is what un-drafting a PR fires; drafts are skipped below.
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   claude-review:
     # Skip fork PRs — OIDC auth unavailable. Remove once anthropics/claude-code-action#939 lands.
     # Skip Dependabot PRs — automated dependency bumps don't need a code review.
+    # Skip drafts — every push would buy a review of code that's still changing.
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.user.login != 'dependabot[bot]'
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
-      issues: read
+      issues: write
       id-token: write
 
     steps:
@@ -30,14 +32,61 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Record start time
+        id: start
+        run: echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          # The action owns a tracking comment the review is posted into, so the
+          # summary doesn't depend on a `gh pr comment` call the Bash matcher may deny.
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request for bugs and incorrect behavior.
+            Use the repository's AGENTS.md for conventions and REVIEW.md for what to
+            flag, what to skip, and the shape of the summary.
+
+            Post the overall review into your tracking comment and flag specific
+            issues with inline comments. Do not use `gh pr comment`.
+          # The inline-comment tool only exists when --allowed-tools names it; without
+          # it, findings can't be posted and only "no issues" summaries reach the PR.
+          claude_args: '--model claude-opus-5-5 --allowed-tools "Write,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*)"'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
+      - name: Ensure the review was posted
+        # Not on cancel: a newer push superseded this run and gets its own review.
+        if: success() || failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SINCE: ${{ steps.start.outputs.at }}
+          WORKFLOW: .github/workflows/claude-code-review.yml
+        run: |
+          # The action skips itself when this file differs from the default branch's
+          # copy, so a PR that edits it gets no review. That is expected: warn and pass.
+          default_branch=$(gh api "repos/${GITHUB_REPOSITORY}" --jq .default_branch)
+          base_blob=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${WORKFLOW}?ref=${default_branch}" \
+            --jq .sha 2>/dev/null || echo "")
+          head_blob=$(git hash-object "$WORKFLOW" 2>/dev/null || echo "")
+          if [ "$base_blob" != "$head_blob" ]; then
+            echo "::warning::This PR changes ${WORKFLOW}, so the review action skipped itself."
+            exit 0
+          fi
+
+          # The tracking comment exists from the start of the run, so look for the
+          # line REVIEW.md asks the review to end with, in a comment this run touched.
+          count=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments?since=${SINCE}&per_page=100" \
+            --jq '[.[] | select(.user.login == "claude[bot]" or .user.login == "github-actions[bot]")
+                       | select(.body | contains("End of review."))] | length')
+          echo "Finished Claude reviews on PR #${PR} since ${SINCE}: ${count:-0}"
+          if [ "${count:-0}" -eq 0 ]; then
+            echo "::error::No finished Claude review was posted on PR #${PR}. Check the 'Run Claude Code Review' step for permission denials or run errors."
+            exit 1
+          fi

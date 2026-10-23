@@ -1,11 +1,11 @@
 {
 	"version": 1,
 	"skills": {
-		"review-agents-md": {
-			"source": "bettervibe-org/skills",
+		"scion-like-git": {
+			"source": "unvibe-org/skills",
 			"sourceType": "github",
-			"skillPath": "plugins/review-agents-md/skills/review-agents-md/SKILL.md",
-			"computedHash": "001b95ffc82669431a1e9bde3e0803d176c266dbca1bfb1736eae159c6a45832"
+			"skillPath": "plugins/scion-like-git/skills/scion-like-git/SKILL.md",
+			"computedHash": "dc59162ddfceaed11c07f21fba59b3c4394fb558449ba5cec488b7fd393d757e"
 		}
 	}
 }
