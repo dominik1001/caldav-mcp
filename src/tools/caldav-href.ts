@@ -12,12 +12,16 @@ export function hrefFor(calendarUrl: string, uid: string): string {
  * Resolves a server-relative calendar href (as ts-caldav returns it) against
  * the configured base URL, so agents get a URL they can pass back verbatim
  * instead of guessing how to prefix it. Hrefs that are already absolute are
- * left as they are.
+ * left as they are. Credentials in the base URL are dropped: the result is
+ * shown to the LLM.
  */
 export function toAbsoluteUrl(href: string, baseUrl: string | undefined) {
 	if (!href || !baseUrl) return href;
 	try {
-		return new URL(href, baseUrl).toString();
+		const url = new URL(href, baseUrl);
+		url.username = "";
+		url.password = "";
+		return url.toString();
 	} catch {
 		return href;
 	}

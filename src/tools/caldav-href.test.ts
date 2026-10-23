@@ -30,6 +30,12 @@ describe("toAbsoluteUrl", () => {
 		);
 	});
 
+	test("drops credentials embedded in the base URL", () => {
+		expect(
+			toAbsoluteUrl(calendarPath, "https://alice:s3cret@cloud.example.com/"),
+		).toBe(`https://cloud.example.com${calendarPath}`);
+	});
+
 	test("leaves an already absolute href untouched", () => {
 		const href = "https://other.example.com/cal/";
 		expect(toAbsoluteUrl(href, "https://cloud.example.com")).toBe(href);
