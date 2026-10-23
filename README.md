@@ -90,7 +90,7 @@ Parameters:
 - `calendarUrl`: string
 
 Returns:
-- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`
+- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`. A whole-day event carries `wholeDay: true`, and its `start` and `end` are plain calendar dates (`YYYY-MM-DD`); `end` names the last day the event covers, not the exclusive DTEND, so it is the day create-event and update-event take as their own `end`. Those two require a full ISO 8601 datetime, so add a time and an offset before passing such a date back. Every other event gives `start` and `end` as ISO 8601 instants.
 
 ### create-event
 
