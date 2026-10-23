@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24"
           cache: "npm"
       - name: Install dependencies
         run: npm ci
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24"
           cache: "npm"
       - name: Install dependencies
         run: npm ci
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24"
           cache: "npm"
       - name: Install dependencies
         run: npm ci
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24"
       - run: npm ci
       - run: npm test
 
@@ -72,7 +72,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24"
           cache: "npm"
       - uses: actions/setup-python@v6
         with:
@@ -136,7 +136,7 @@ jobs:
           ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
       - uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24"
       - run: npm ci
       - run: npm run build
       - run: npx semantic-release --repository-url git@github.com:dominik1001/caldav-mcp.git
