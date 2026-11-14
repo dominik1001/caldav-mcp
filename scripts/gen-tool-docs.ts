@@ -70,6 +70,9 @@ function describeType(schema: z.ZodTypeAny): string {
 	if (schema instanceof z.ZodObject) {
 		return "object";
 	}
+	if (schema instanceof z.ZodNullable) {
+		return `${describeType(schema.unwrap() as z.ZodTypeAny)} or null`;
+	}
 	return "value";
 }
 

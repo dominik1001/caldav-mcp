@@ -90,7 +90,7 @@ Parameters:
 - `start`: string — Start date (ISO 8601)
 
 Returns:
-- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`
+- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description`, `location`, `alarms` (each with `action` and `trigger`, e.g. `-PT30M`) and `transparent` (true when the event is marked free)
 
 ### create-event
 
@@ -109,8 +109,10 @@ Parameters:
   - `freq`: enum (`DAILY` | `WEEKLY` | `MONTHLY` | `YEARLY`) (optional)
   - `interval`: number (optional)
   - `until`: string (optional)
+- `reminderBefore`: string (optional) — Display reminder before the event start, as ISO 8601 duration in weeks, days, hours, minutes or seconds (e.g. P3D, PT30M)
 - `start`: string — Start datetime (ISO 8601)
 - `summary`: string
+- `transparent`: boolean (optional) — Mark the event as free (true) or busy (false)
 - `wholeDay`: boolean (optional) — Create as a whole-day event
 
 Returns:
@@ -133,8 +135,10 @@ Parameters:
   - `freq`: enum (`DAILY` | `WEEKLY` | `MONTHLY` | `YEARLY`) (optional)
   - `interval`: number (optional)
   - `until`: string (optional)
+- `reminderBefore`: string or null (optional) — Display reminder before the event start, as ISO 8601 duration in weeks, days, hours, minutes or seconds (e.g. P3D, PT30M). Replaces the event's existing display reminders; email and audio reminders are kept. Pass null to remove the display reminders.
 - `start`: string (optional)
 - `summary`: string (optional)
+- `transparent`: boolean or null (optional) — Mark the event as free (true) or busy (false). Pass null to clear the free/busy status.
 - `uid`: string — Unique identifier of the event to update (obtained from list-events)
 - `wholeDay`: boolean (optional) — Update whether this is a whole-day event
 
