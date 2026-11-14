@@ -55,10 +55,9 @@ function expectIcsProp(ics: string, name: string, expectedValue: string) {
 	}
 }
 
-// Until #100 lands, list-events returns a whole-day start as the instant of
-// local midnight; read it back as a local calendar date so the check holds
-// in any TZ (the server is spawned with this process's TZ). A bare date is
-// taken as is.
+// A whole-day start comes back as a bare date, taken as is. Older servers
+// return the instant of local midnight; read that as a local calendar date so
+// the check holds in any TZ.
 function listedCalendarDate(value: string): string {
 	if (BARE_DATE.test(value)) {
 		return value;

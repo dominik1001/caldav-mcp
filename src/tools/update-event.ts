@@ -7,7 +7,11 @@ import {
 	recurrenceRuleSchema,
 	toRecurrenceRule,
 } from "./recurrence-rule.js";
-import { carryOverWholeDayDates, toWholeDayDate } from "./whole-day-date.js";
+import {
+	carryOverWholeDayDates,
+	eventDateSchema,
+	toEventDate,
+} from "./whole-day-date.js";
 
 interface UpdateEventInput {
 	calendarUrl: string;
@@ -27,10 +31,10 @@ export const updateEventDefinition = {
 	inputSchema: {
 		calendarUrl: z.string(),
 		description: z.string().optional(),
-		end: z.string().datetime({ offset: true }).optional(),
+		end: eventDateSchema.optional(),
 		location: z.string().optional(),
 		recurrenceRule: recurrenceRuleSchema.optional(),
-		start: z.string().datetime({ offset: true }).optional(),
+		start: eventDateSchema.optional(),
 		summary: z.string().optional(),
 		uid: z
 			.string()
@@ -82,10 +86,10 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				...(effectiveWholeDay && carryOverWholeDayDates(existing)),
 				...(summary !== undefined && { summary }),
 				...(start !== undefined && {
-					start: effectiveWholeDay ? toWholeDayDate(start) : new Date(start),
+					start: toEventDate(start, effectiveWholeDay),
 				}),
 				...(end !== undefined && {
-					end: effectiveWholeDay ? toWholeDayDate(end) : new Date(end),
+					end: toEventDate(end, effectiveWholeDay),
 				}),
 				...(wholeDay !== undefined && { wholeDay }),
 				...(description !== undefined && { description }),

@@ -4,7 +4,9 @@ import {
 	carryOverWholeDayDates,
 	inclusiveEndToWholeDayDate,
 	localDayToWholeDayDate,
+	toEventDate,
 	toWholeDayDate,
+	wholeDaySpan,
 } from "./whole-day-date.js";
 
 describe("toWholeDayDate", () => {
@@ -140,5 +142,72 @@ describe("stored whole-day dates", () => {
 		});
 
 		expect(Object.keys(carried)).toEqual(["start"]);
+	});
+});
+
+describe("wholeDaySpan", () => {
+	const event = (start: Date, end?: Date) =>
+		({ end, start, summary: "x", uid: "u", wholeDay: true }) as Event;
+
+	test("reports the last covered day, not the exclusive DTEND", () => {
+		expect(
+			wholeDaySpan(event(new Date(2026, 7, 25), new Date(2026, 7, 30)))
+		).toEqual({ end: "2026-08-29", start: "2026-08-25", wholeDay: true });
+	});
+
+	test("keeps a one-day event on one date", () => {
+		expect(
+			wholeDaySpan(event(new Date(2026, 7, 25), new Date(2026, 7, 26)))
+		).toMatchObject({ end: "2026-08-25", start: "2026-08-25" });
+	});
+
+	test("puts start and end on the same date without DTEND", () => {
+		expect(wholeDaySpan(event(new Date(2026, 7, 25)))).toMatchObject({
+			end: "2026-08-25",
+			start: "2026-08-25",
+		});
+	});
+
+	test("counts calendar days across the October clock change", () => {
+		expect(
+			wholeDaySpan(event(new Date(2026, 9, 24), new Date(2026, 9, 28)))
+		).toMatchObject({ end: "2026-10-27", start: "2026-10-24" });
+	});
+
+	test("pads years below 1000", () => {
+		const start = new Date(2000, 0, 1);
+		start.setFullYear(999);
+		const end = new Date(start);
+		end.setDate(end.getDate() + 1);
+		expect(wholeDaySpan(event(start, end)).start).toBe("0999-01-01");
+	});
+
+	test("does not hide an end before the start", () => {
+		expect(
+			wholeDaySpan(event(new Date(2026, 7, 25), new Date(2026, 7, 25)))
+		).toMatchObject({ end: "2026-08-24", start: "2026-08-25" });
+	});
+});
+
+const PLAIN_DATE_ERROR = /plain date/;
+
+describe("toEventDate", () => {
+	test("takes a plain date for a whole-day event", () => {
+		expect(toEventDate("2026-08-25", true).toISOString()).toBe(
+			"2026-08-25T00:00:00.000Z"
+		);
+	});
+
+	test("rejects a plain date for a timed event", () => {
+		expect(() => toEventDate("2026-08-25", false)).toThrow(PLAIN_DATE_ERROR);
+		expect(() => toEventDate("2026-08-25", undefined)).toThrow(
+			PLAIN_DATE_ERROR
+		);
+	});
+
+	test("parses a datetime for a timed event", () => {
+		expect(toEventDate("2026-08-25T10:00:00Z", false).toISOString()).toBe(
+			"2026-08-25T10:00:00.000Z"
+		);
 	});
 });

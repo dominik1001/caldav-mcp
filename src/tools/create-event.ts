@@ -7,7 +7,7 @@ import {
 	recurrenceRuleSchema,
 	toRecurrenceRule,
 } from "./recurrence-rule.js";
-import { toWholeDayDate } from "./whole-day-date.js";
+import { eventDateSchema, toEventDate } from "./whole-day-date.js";
 
 interface CreateEventInput {
 	calendarUrl: string;
@@ -26,16 +26,14 @@ export const createEventDefinition = {
 	inputSchema: {
 		calendarUrl: z.string(),
 		description: z.string().optional(),
-		end: z
-			.string()
-			.datetime({ offset: true })
-			.describe("End datetime (ISO 8601)"),
+		end: eventDateSchema.describe(
+			"End datetime (ISO 8601); for a whole-day event a plain date (YYYY-MM-DD) is also accepted"
+		),
 		location: z.string().optional(),
 		recurrenceRule: recurrenceRuleSchema.optional(),
-		start: z
-			.string()
-			.datetime({ offset: true })
-			.describe("Start datetime (ISO 8601)"),
+		start: eventDateSchema.describe(
+			"Start datetime (ISO 8601); for a whole-day event a plain date (YYYY-MM-DD) is also accepted"
+		),
 		summary: z.string(),
 		wholeDay: z.boolean().optional().describe("Create as a whole-day event"),
 	},
@@ -62,8 +60,8 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 			} = args;
 			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 			const event = await client.createEvent(calendarUrl, {
-				end: wholeDay ? toWholeDayDate(end) : new Date(end),
-				start: wholeDay ? toWholeDayDate(start) : new Date(start),
+				end: toEventDate(end, wholeDay),
+				start: toEventDate(start, wholeDay),
 				summary,
 				...(wholeDay !== undefined && { wholeDay }),
 				...(description !== undefined && { description }),
