@@ -227,4 +227,33 @@ describe("registerListEvents with a rescheduled occurrence", () => {
 		expect(events).toHaveLength(1);
 		expect(events[0].start).toBe("2026-08-21T15:00:00.000Z");
 	});
+
+	test("does not ask the server to expand recurring events", async () => {
+		const mockClient = { getEvents: vi.fn().mockResolvedValue([]) };
+
+		let toolHandler: ToolHandler | null = null;
+		const server = new McpServer({ name: "test-server", version: "0.1.0" });
+		const originalRegisterTool = server.registerTool.bind(server);
+		server.registerTool = vi.fn(
+			(name: string, config: unknown, handler: ToolHandler) => {
+				if (name === "list-events") {
+					toolHandler = handler;
+				}
+				return originalRegisterTool(name, config, handler);
+			}
+		) as typeof server.registerTool;
+
+		registerListEvents(mockClient as CalDAVClient, server);
+		expect(toolHandler).toBeDefined();
+
+		await toolHandler({
+			calendarUrl: "/test/calendar/",
+			end: "2026-08-22T00:00:00Z",
+			start: "2026-08-21T00:00:00Z",
+		});
+
+		expect(mockClient.getEvents.mock.calls[0]?.[1]).not.toHaveProperty(
+			"expand"
+		);
+	});
 });

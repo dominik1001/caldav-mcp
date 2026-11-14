@@ -47,10 +47,6 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
 			const windowEnd = new Date(end);
 			const allEvents = await client.getEvents(calendarUrl, {
 				end: windowEnd,
-				// Servers that honour this return the occurrences already expanded,
-				// with EXDATE and replacements applied; expandEvents then only has to
-				// pass them through. The ones that ignore it are why it exists.
-				expand: true,
 				start: windowStart,
 			});
 			const data = expandEvents(allEvents, windowStart, windowEnd).map(
