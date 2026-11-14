@@ -11,6 +11,8 @@ type ToolHandler = (params: {
 	wholeDay?: boolean;
 	description?: string;
 	location?: string;
+	reminderBefore?: string;
+	transparent?: boolean;
 	recurrenceRule?: {
 		freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 		interval?: number;
@@ -189,5 +191,57 @@ describe("registerCreateEvent", () => {
 
 		const passed = mockClient.createEvent.mock.calls[0]?.[1];
 		expect(passed).not.toHaveProperty("wholeDay");
+	});
+
+	test("passes reminderBefore as a negative DISPLAY alarm and transparent as TRANSP", async () => {
+		const mockClient = {
+			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerCreateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) {
+			throw new Error("handler not registered");
+		}
+
+		await handler({
+			calendarUrl: "/f/test-calendar/",
+			end: "2026-11-21T16:00:00.000Z",
+			reminderBefore: "P3D",
+			start: "2026-11-21T09:00:00.000Z",
+			summary: "Bazaar",
+			transparent: true,
+		});
+
+		const passed = mockClient.createEvent.mock.calls[0]?.[1];
+		expect(passed?.alarms).toEqual([
+			{ action: "DISPLAY", description: "Bazaar", trigger: "-P3D" },
+		]);
+		expect(passed?.customFields).toEqual({ transp: "TRANSPARENT" });
+	});
+
+	test("omits alarms and customFields when neither option is given", async () => {
+		const mockClient = {
+			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerCreateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) {
+			throw new Error("handler not registered");
+		}
+
+		await handler({
+			calendarUrl: "/f/test-calendar/",
+			end: "2026-11-21T16:00:00.000Z",
+			start: "2026-11-21T09:00:00.000Z",
+			summary: "Plain",
+		});
+
+		const passed = mockClient.createEvent.mock.calls[0]?.[1];
+		expect(passed).not.toHaveProperty("alarms");
+		expect(passed).not.toHaveProperty("customFields");
 	});
 });

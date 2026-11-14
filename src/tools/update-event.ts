@@ -3,23 +3,17 @@ import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
 import { hrefFor, toCalendarPath } from "./caldav-href.js";
 import {
-	type RecurrenceRuleInput,
-	recurrenceRuleSchema,
-	toRecurrenceRule,
-} from "./recurrence-rule.js";
+	reminderBeforeSchema,
+	transparentSchema,
+	updatedAlarms,
+	updatedCustomFields,
+} from "./event-extras.js";
+import { recurrenceRuleSchema, toRecurrenceRule } from "./recurrence-rule.js";
 import { carryOverWholeDayDates, toWholeDayDate } from "./whole-day-date.js";
 
-interface UpdateEventInput {
-	calendarUrl: string;
-	description?: string | undefined;
-	end?: string | undefined;
-	location?: string | undefined;
-	recurrenceRule?: RecurrenceRuleInput | undefined;
-	start?: string | undefined;
-	summary?: string | undefined;
-	uid: string;
-	wholeDay?: boolean | undefined;
-}
+type UpdateEventInput = z.infer<
+	z.ZodObject<typeof updateEventDefinition.inputSchema>
+>;
 
 export const updateEventDefinition = {
 	description:
@@ -30,8 +24,20 @@ export const updateEventDefinition = {
 		end: z.string().datetime({ offset: true }).optional(),
 		location: z.string().optional(),
 		recurrenceRule: recurrenceRuleSchema.optional(),
+		reminderBefore: reminderBeforeSchema
+			.nullable()
+			.optional()
+			.describe(
+				"Display reminder before the event start, as ISO 8601 duration in weeks, days, hours, minutes or seconds (e.g. P3D, PT30M). Replaces the event's existing display reminders; email and audio reminders are kept. Pass null to remove the display reminders."
+			),
 		start: z.string().datetime({ offset: true }).optional(),
 		summary: z.string().optional(),
+		transparent: transparentSchema
+			.nullable()
+			.optional()
+			.describe(
+				"Mark the event as free (true) or busy (false). Pass null to clear the free/busy status."
+			),
 		uid: z
 			.string()
 			.describe(
@@ -63,6 +69,8 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				description,
 				location,
 				recurrenceRule,
+				reminderBefore,
+				transparent,
 			} = args;
 			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 
@@ -74,6 +82,15 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 			}
 
 			const effectiveWholeDay = wholeDay ?? existing.wholeDay;
+			const alarms = updatedAlarms(
+				existing.alarms,
+				reminderBefore,
+				summary ?? existing.summary
+			);
+			const customFields = updatedCustomFields(
+				existing.customFields,
+				transparent
+			);
 
 			const updated = await client.updateEvent(calendarUrl, {
 				...existing,
@@ -93,6 +110,8 @@ export function registerUpdateEvent(client: CalDAVClient, server: McpServer) {
 				...(recurrenceRule !== undefined && {
 					recurrenceRule: toRecurrenceRule(recurrenceRule, effectiveWholeDay),
 				}),
+				...(alarms !== undefined && { alarms }),
+				...(customFields !== undefined && { customFields }),
 			});
 
 			return {

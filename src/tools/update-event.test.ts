@@ -12,6 +12,8 @@ type ToolHandler = (params: {
 	wholeDay?: boolean;
 	description?: string;
 	location?: string;
+	reminderBefore?: string;
+	transparent?: boolean;
 	recurrenceRule?: {
 		freq?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
 		interval?: number;
@@ -461,5 +463,145 @@ describe("registerUpdateEvent whole-day handling", () => {
 			"/f/test-calendar/",
 			expect.objectContaining({ end: timed.end, start: timed.start })
 		);
+	});
+
+	test("sets reminder and keeps other custom fields when marking the event free", async () => {
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([
+				{
+					...existingEvent,
+					customFields: { transp: "OPAQUE", "x-foo": "bar" },
+				},
+			]),
+			updateEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) {
+			throw new Error("handler not registered");
+		}
+
+		await handler({
+			calendarUrl: "/f/test-calendar/",
+			reminderBefore: "P3D",
+			transparent: true,
+			uid: "event-123",
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.alarms).toEqual([
+			{
+				action: "DISPLAY",
+				description: "Original summary",
+				trigger: "-P3D",
+			},
+		]);
+		expect(passed?.customFields).toEqual({
+			transp: "TRANSPARENT",
+			"x-foo": "bar",
+		});
+	});
+
+	test("leaves existing alarms and custom fields as they are when not provided", async () => {
+		const withExtras = {
+			...existingEvent,
+			alarms: [{ action: "DISPLAY" as const, trigger: "-PT15M" }],
+			customFields: { transp: "TRANSPARENT" },
+		};
+		const mockClient = {
+			getEventsByHref: vi.fn().mockResolvedValue([withExtras]),
+			updateEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) {
+			throw new Error("handler not registered");
+		}
+
+		await handler({
+			calendarUrl: "/f/test-calendar/",
+			summary: "Renamed",
+			uid: "event-123",
+		});
+
+		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
+		expect(passed?.alarms).toEqual([
+			{ action: "DISPLAY", description: "Renamed", trigger: "-PT15M" },
+		]);
+		expect(passed?.customFields).toEqual(withExtras.customFields);
+	});
+
+	async function updateWith(
+		existing: Partial<Event>,
+		args: Record<string, unknown>
+	) {
+		const mockClient = {
+			getEventsByHref: vi
+				.fn()
+				.mockResolvedValue([{ ...existingEvent, ...existing }]),
+			updateEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
+		};
+		const { server, getHandler } = makeServer();
+		registerUpdateEvent(mockClient as unknown as CalDAVClient, server);
+		const handler = getHandler();
+		if (!handler) {
+			throw new Error("handler not registered");
+		}
+		await handler({
+			calendarUrl: "/f/test-calendar/",
+			uid: "event-123",
+			...args,
+		} as Parameters<typeof handler>[0]);
+		return mockClient.updateEvent.mock.calls[0]?.[1];
+	}
+
+	const emailAlarm = { action: "EMAIL" as const, trigger: "-P1D" };
+
+	test("keeps email alarms when it replaces the display reminder", async () => {
+		const passed = await updateWith(
+			{
+				alarms: [
+					emailAlarm,
+					{ action: "DISPLAY", description: "x", trigger: "-PT10M" },
+				],
+			},
+			{ reminderBefore: "PT1H" }
+		);
+
+		expect(passed?.alarms).toEqual([
+			emailAlarm,
+			{
+				action: "DISPLAY",
+				description: "Original summary",
+				trigger: "-PT1H",
+			},
+		]);
+	});
+
+	test("removes the display reminder when reminderBefore is null", async () => {
+		const passed = await updateWith(
+			{
+				alarms: [
+					emailAlarm,
+					{ action: "DISPLAY", description: "x", trigger: "-PT10M" },
+				],
+			},
+			{ reminderBefore: null }
+		);
+
+		expect(passed?.alarms).toEqual([emailAlarm]);
+	});
+
+	test("clears the free/busy status when transparent is null", async () => {
+		const passed = await updateWith(
+			{ customFields: { transp: "TRANSPARENT", "x-foo": "bar" } },
+			{ transparent: null }
+		);
+
+		expect(passed?.customFields).toEqual({ "x-foo": "bar" });
 	});
 });

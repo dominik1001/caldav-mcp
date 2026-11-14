@@ -3,22 +3,17 @@ import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
 import { toCalendarPath } from "./caldav-href.js";
 import {
-	type RecurrenceRuleInput,
-	recurrenceRuleSchema,
-	toRecurrenceRule,
-} from "./recurrence-rule.js";
+	reminderBeforeSchema,
+	toAlarm,
+	toTransp,
+	transparentSchema,
+} from "./event-extras.js";
+import { recurrenceRuleSchema, toRecurrenceRule } from "./recurrence-rule.js";
 import { toWholeDayDate } from "./whole-day-date.js";
 
-interface CreateEventInput {
-	calendarUrl: string;
-	description?: string | undefined;
-	end: string;
-	location?: string | undefined;
-	recurrenceRule?: RecurrenceRuleInput | undefined;
-	start: string;
-	summary: string;
-	wholeDay?: boolean | undefined;
-}
+type CreateEventInput = z.infer<
+	z.ZodObject<typeof createEventDefinition.inputSchema>
+>;
 
 export const createEventDefinition = {
 	description:
@@ -32,11 +27,19 @@ export const createEventDefinition = {
 			.describe("End datetime (ISO 8601)"),
 		location: z.string().optional(),
 		recurrenceRule: recurrenceRuleSchema.optional(),
+		reminderBefore: reminderBeforeSchema
+			.optional()
+			.describe(
+				"Display reminder before the event start, as ISO 8601 duration in weeks, days, hours, minutes or seconds (e.g. P3D, PT30M)"
+			),
 		start: z
 			.string()
 			.datetime({ offset: true })
 			.describe("Start datetime (ISO 8601)"),
 		summary: z.string(),
+		transparent: transparentSchema
+			.optional()
+			.describe("Mark the event as free (true) or busy (false)"),
 		wholeDay: z.boolean().optional().describe("Create as a whole-day event"),
 	},
 	name: "create-event",
@@ -59,6 +62,8 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 				description,
 				location,
 				recurrenceRule,
+				reminderBefore,
+				transparent,
 			} = args;
 			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 			const event = await client.createEvent(calendarUrl, {
@@ -70,6 +75,12 @@ export function registerCreateEvent(client: CalDAVClient, server: McpServer) {
 				...(location !== undefined && { location }),
 				...(recurrenceRule !== undefined && {
 					recurrenceRule: toRecurrenceRule(recurrenceRule, wholeDay),
+				}),
+				...(reminderBefore !== undefined && {
+					alarms: [toAlarm(reminderBefore, summary)],
+				}),
+				...(transparent !== undefined && {
+					customFields: { transp: toTransp(transparent) },
 				}),
 			});
 
