@@ -82,7 +82,7 @@ Returns:
 
 ### list-events
 
-List all events between start and end date in the calendar specified by its URL
+List all events between start and end date in the calendar specified by its URL. A whole-day event has `wholeDay: true` and plain calendar dates (`YYYY-MM-DD`) as `start` and `end`; `end` is the last day the event covers (inclusive, not the exclusive iCalendar DTEND). These dates can be passed to create-event and update-event as they are, together with `wholeDay: true`. Every other event has ISO 8601 instants.
 
 Parameters:
 - `calendarUrl`: string
@@ -90,7 +90,7 @@ Parameters:
 - `start`: string — Start date (ISO 8601)
 
 Returns:
-- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`
+- A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`. A whole-day event also carries `wholeDay: true`, and its `start` and `end` are plain calendar dates (`YYYY-MM-DD`) with `end` being the last day covered.
 
 ### create-event
 
@@ -99,7 +99,7 @@ Creates an event in the calendar specified by its URL. For all-day events, set `
 Parameters:
 - `calendarUrl`: string
 - `description`: string (optional)
-- `end`: string — End datetime (ISO 8601)
+- `end`: value — End datetime (ISO 8601); for a whole-day event a plain date (YYYY-MM-DD) is also accepted
 - `location`: string (optional)
 - `recurrenceRule`: object (optional)
   - `byday`: array of string (optional)
@@ -109,7 +109,7 @@ Parameters:
   - `freq`: enum (`DAILY` | `WEEKLY` | `MONTHLY` | `YEARLY`) (optional)
   - `interval`: number (optional)
   - `until`: string (optional)
-- `start`: string — Start datetime (ISO 8601)
+- `start`: value — Start datetime (ISO 8601); for a whole-day event a plain date (YYYY-MM-DD) is also accepted
 - `summary`: string
 - `wholeDay`: boolean (optional) — Create as a whole-day event
 
@@ -123,7 +123,7 @@ Updates an existing event in the calendar specified by its URL. Only provided fi
 Parameters:
 - `calendarUrl`: string
 - `description`: string (optional)
-- `end`: string (optional)
+- `end`: value (optional)
 - `location`: string (optional)
 - `recurrenceRule`: object (optional)
   - `byday`: array of string (optional)
@@ -133,7 +133,7 @@ Parameters:
   - `freq`: enum (`DAILY` | `WEEKLY` | `MONTHLY` | `YEARLY`) (optional)
   - `interval`: number (optional)
   - `until`: string (optional)
-- `start`: string (optional)
+- `start`: value (optional)
 - `summary`: string (optional)
 - `uid`: string — Unique identifier of the event to update (obtained from list-events)
 - `wholeDay`: boolean (optional) — Update whether this is a whole-day event

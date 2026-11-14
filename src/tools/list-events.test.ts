@@ -173,4 +173,57 @@ describe("registerListEvents", () => {
 		expect(events[0]).toHaveProperty("start", "2026-08-20T09:00:00.000Z");
 		expect(events[0]).toHaveProperty("end", "2026-08-22T09:00:00.000Z");
 	});
+
+	test("reports a whole-day event as plain dates and leaves timed events alone", async () => {
+		const mockClient = {
+			getEvents: vi.fn().mockResolvedValue([
+				{
+					end: new Date(2026, 7, 30),
+					start: new Date(2026, 7, 25),
+					summary: "Trip",
+					uid: "whole-day",
+					wholeDay: true,
+				},
+				{
+					end: new Date("2026-08-25T11:00:00Z"),
+					start: new Date("2026-08-25T10:00:00Z"),
+					summary: "Lunch",
+					uid: "timed",
+				},
+			]),
+		};
+
+		let toolHandler: ToolHandler | null = null;
+		const server = new McpServer({ name: "test-server", version: "0.1.0" });
+		const originalRegisterTool = server.registerTool.bind(server);
+		server.registerTool = vi.fn(
+			(name: string, config: unknown, handler: ToolHandler) => {
+				if (name === "list-events") {
+					toolHandler = handler;
+				}
+				return originalRegisterTool(name, config, handler);
+			}
+		) as typeof server.registerTool;
+
+		registerListEvents(mockClient as CalDAVClient, server);
+		expect(toolHandler).toBeDefined();
+
+		const result = await toolHandler({
+			calendarUrl: "/test/calendar/",
+			end: "2026-09-01T00:00:00Z",
+			start: "2026-08-01T00:00:00Z",
+		});
+
+		const [tripEvent, lunch] = JSON.parse(result.content[0].text);
+		expect(tripEvent).toMatchObject({
+			end: "2026-08-29",
+			start: "2026-08-25",
+			wholeDay: true,
+		});
+		expect(lunch).toMatchObject({
+			end: "2026-08-25T11:00:00.000Z",
+			start: "2026-08-25T10:00:00.000Z",
+		});
+		expect(lunch).not.toHaveProperty("wholeDay");
+	});
 });

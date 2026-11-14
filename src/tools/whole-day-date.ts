@@ -1,4 +1,5 @@
 import type { Event } from "ts-caldav";
+import { z } from "zod";
 
 // ts-caldav and ical.js disagree about how a whole-day (`VALUE=DATE`) value is
 // represented as a `Date`. ts-caldav writes each date it stores (DTSTART,
@@ -91,4 +92,60 @@ export function carryOverWholeDayDates(existing: Event): Partial<Event> {
 		carried.recurrenceId = localDayToWholeDayDate(existing.recurrenceId);
 	}
 	return carried;
+}
+
+export const eventDateSchema = z.union([
+	z.string().datetime({ offset: true }),
+	z.string().date(),
+]);
+
+const PLAIN_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Parses a `start` or `end` argument. A plain `YYYY-MM-DD`, which is what
+ * list-events reports for a whole-day event, is only valid for a whole-day
+ * event: for a timed one it would silently mean midnight UTC.
+ */
+export function toEventDate(
+	value: string,
+	wholeDay: boolean | undefined
+): Date {
+	if (wholeDay) {
+		return toWholeDayDate(value);
+	}
+	if (PLAIN_DATE.test(value)) {
+		throw new Error(
+			`"${value}" is a plain date, which is only valid for a whole-day event. Pass a full ISO 8601 datetime, or set wholeDay to true.`
+		);
+	}
+	return new Date(value);
+}
+
+function calendarDate(value: Date): string {
+	const year = String(value.getFullYear()).padStart(4, "0");
+	const month = String(value.getMonth() + 1).padStart(2, "0");
+	const day = String(value.getDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
+}
+
+/**
+ * The calendar dates a whole-day event covers, as list-events reports them.
+ *
+ * ical.js hands a `VALUE=DATE` back as local midnight, which serialises to the
+ * previous day east of UTC. Reading the local calendar fields gives the date
+ * the server stored. DTEND is exclusive, so the day before it is the last day
+ * the event covers, which is also what create-event and update-event take as
+ * `end`.
+ */
+export function wholeDaySpan(event: Event) {
+	const end = event.end as Date | undefined;
+	const lastDay = end ? new Date(end) : new Date(event.start);
+	if (end) {
+		lastDay.setDate(lastDay.getDate() - 1);
+	}
+	return {
+		end: calendarDate(lastDay),
+		start: calendarDate(event.start),
+		wholeDay: true as const,
+	};
 }
