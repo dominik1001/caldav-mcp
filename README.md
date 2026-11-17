@@ -4,6 +4,8 @@
 
 🗓️ A CalDAV Model Context Protocol (MCP) server to expose calendar operations as tools for AI assistants.
 
+Maintained by the team behind Langmail. Want mail, calendar and contacts for your agent over one hosted MCP, with OAuth and nothing to run? → [langmail.me](https://langmail.me/?ref=caldav-mcp)
+
 [![Release](https://github.com/dominik1001/caldav-mcp/actions/workflows/release.yml/badge.svg)](https://github.com/dominik1001/caldav-mcp/actions/workflows/release.yml)
 [![npm version](https://badge.fury.io/js/caldav-mcp.svg)](https://www.npmjs.com/package/caldav-mcp)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
