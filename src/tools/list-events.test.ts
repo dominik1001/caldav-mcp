@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { registerListEvents } from "./list-events.js";
 
 type ToolHandler = (params: {
@@ -10,7 +10,7 @@ type ToolHandler = (params: {
 }) => Promise<{ content: { type: string; text: string }[] }>;
 
 describe("registerListEvents", () => {
-	test("returns uid field for each event", async () => {
+	it("returns uid field for each event", async () => {
 		// Create mock CalDAV client
 		const mockClient = {
 			getEvents: vi.fn().mockResolvedValue([
@@ -71,7 +71,7 @@ describe("registerListEvents", () => {
 		expect(events[1]).toHaveProperty("summary", "Another Event");
 	});
 
-	test("includes description and location when present, omits them when absent", async () => {
+	it("includes description and location when present, omits them when absent", async () => {
 		const mockClient = {
 			getEvents: vi.fn().mockResolvedValue([
 				{
@@ -119,7 +119,7 @@ describe("registerListEvents", () => {
 		expect(events[1]).not.toHaveProperty("location");
 	});
 
-	test("includes events that started before the window but overlap it", async () => {
+	it("includes events that started before the window but overlap it", async () => {
 		const mockClient = {
 			getEvents: vi.fn().mockResolvedValue([
 				{

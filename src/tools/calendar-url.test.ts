@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerCompleteTodo } from "./complete-todo.js";
 import { registerCreateEvent } from "./create-event.js";
 import { registerCreateTodo } from "./create-todo.js";
@@ -94,7 +94,7 @@ describe("calendarUrl handling", () => {
 		vi.useRealTimers();
 	});
 
-	test.each(tools)(
+	it.each(tools)(
 		"%s makes the same ts-caldav calls for absolute and relative URLs",
 		async (_name, register, args) => {
 			const relative = await callsFor(register, args, calendarPath);
@@ -106,7 +106,7 @@ describe("calendarUrl handling", () => {
 		}
 	);
 
-	test.each(tools)(
+	it.each(tools)(
 		"%s leaves a URL on another server untouched",
 		async (_name, register, args) => {
 			const foreign = "https://other.example.com/cal/";

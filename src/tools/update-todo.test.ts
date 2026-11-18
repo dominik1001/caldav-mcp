@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, Todo } from "ts-caldav";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { registerUpdateTodo } from "./update-todo.js";
 
 type ToolHandler = (params: {
@@ -38,7 +38,7 @@ function makeServer() {
 }
 
 describe("registerUpdateTodo", () => {
-	test("updates only the provided fields and returns the uid", async () => {
+	it("updates only the provided fields and returns the uid", async () => {
 		const mockClient = {
 			getTodosByHref: vi.fn().mockResolvedValue([existingTodo]),
 			updateTodo: vi.fn().mockResolvedValue({
@@ -78,7 +78,7 @@ describe("registerUpdateTodo", () => {
 		expect(passed.due.toISOString()).toBe(dueIso);
 	});
 
-	test("throws when the todo is not found", async () => {
+	it("throws when the todo is not found", async () => {
 		const mockClient = {
 			getTodosByHref: vi.fn().mockResolvedValue([]),
 			updateTodo: vi.fn(),
@@ -96,7 +96,7 @@ describe("registerUpdateTodo", () => {
 		expect(mockClient.updateTodo).not.toHaveBeenCalled();
 	});
 
-	test("preserves the existing todo intact when no mutating fields are given", async () => {
+	it("preserves the existing todo intact when no mutating fields are given", async () => {
 		const existing: Todo = {
 			...existingTodo,
 			description: "keep me",
@@ -132,7 +132,7 @@ describe("registerUpdateTodo", () => {
 		expect(passed.due).toBe(existing.due);
 	});
 
-	test("stamps a completed timestamp when status transitions to COMPLETED", async () => {
+	it("stamps a completed timestamp when status transitions to COMPLETED", async () => {
 		const mockClient = {
 			getTodosByHref: vi.fn().mockResolvedValue([existingTodo]),
 			updateTodo: vi.fn().mockResolvedValue({
@@ -160,7 +160,7 @@ describe("registerUpdateTodo", () => {
 		expect(passed.completed).toBeInstanceOf(Date);
 	});
 
-	test("preserves the original completion time when an already-done task is re-completed", async () => {
+	it("preserves the original completion time when an already-done task is re-completed", async () => {
 		const completedAt = new Date("2026-01-02T03:04:05.000Z");
 		const existing: Todo = {
 			...existingTodo,
@@ -194,7 +194,7 @@ describe("registerUpdateTodo", () => {
 		expect(passed.completed).toBe(completedAt);
 	});
 
-	test("clears the completed timestamp when status transitions away from COMPLETED", async () => {
+	it("clears the completed timestamp when status transitions away from COMPLETED", async () => {
 		const existing: Todo = {
 			...existingTodo,
 			completed: new Date("2026-01-02T03:04:05.000Z"),

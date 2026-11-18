@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { registerCreateTodo } from "./create-todo.js";
 
 type ToolHandler = (params: {
@@ -42,7 +42,7 @@ function setup() {
 }
 
 describe("registerCreateTodo", () => {
-	test("converts due from ISO string to Date and returns the uid", async () => {
+	it("converts due from ISO string to Date and returns the uid", async () => {
 		const { mockClient, handler } = setup();
 		const dueIso = "2026-07-01T09:00:00.000Z";
 
@@ -59,7 +59,7 @@ describe("registerCreateTodo", () => {
 		expect(passed?.due?.toISOString()).toBe(dueIso);
 	});
 
-	test("omits optional fields when not provided", async () => {
+	it("omits optional fields when not provided", async () => {
 		const { mockClient, handler } = setup();
 
 		await handler({ calendarUrl: "/f/tasks/", summary: "Just a title" });
@@ -72,7 +72,7 @@ describe("registerCreateTodo", () => {
 		expect(passed).not.toHaveProperty("location");
 	});
 
-	test("passes status when provided", async () => {
+	it("passes status when provided", async () => {
 		const { mockClient, handler } = setup();
 
 		await handler({

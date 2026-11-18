@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { registerCreateEvent } from "./create-event.js";
 
 type ToolHandler = (params: {
@@ -38,7 +38,7 @@ function makeServer() {
 }
 
 describe("registerCreateEvent", () => {
-	test("converts recurrenceRule.until from ISO string to Date", async () => {
+	it("converts recurrenceRule.until from ISO string to Date", async () => {
 		const mockClient = {
 			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
 		};
@@ -65,7 +65,7 @@ describe("registerCreateEvent", () => {
 		expect(passed?.recurrenceRule?.freq).toBe("DAILY");
 	});
 
-	test("omits recurrenceRule when not provided", async () => {
+	it("omits recurrenceRule when not provided", async () => {
 		const mockClient = {
 			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
 		};
@@ -88,7 +88,7 @@ describe("registerCreateEvent", () => {
 		expect(passed?.recurrenceRule).toBeUndefined();
 	});
 
-	test("passes wholeDay flag when true", async () => {
+	it("passes wholeDay flag when true", async () => {
 		const mockClient = {
 			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
 		};
@@ -112,7 +112,7 @@ describe("registerCreateEvent", () => {
 		expect(passed?.wholeDay).toBe(true);
 	});
 
-	test("passes wholeDay flag when false", async () => {
+	it("passes wholeDay flag when false", async () => {
 		const mockClient = {
 			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
 		};
@@ -136,7 +136,7 @@ describe("registerCreateEvent", () => {
 		expect(passed?.wholeDay).toBe(false);
 	});
 
-	test("preserves the calendar date for whole-day events with a positive UTC offset", async () => {
+	it("preserves the calendar date for whole-day events with a positive UTC offset", async () => {
 		const mockClient = {
 			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
 		};
@@ -168,7 +168,7 @@ describe("registerCreateEvent", () => {
 		);
 	});
 
-	test("omits wholeDay when not provided", async () => {
+	it("omits wholeDay when not provided", async () => {
 		const mockClient = {
 			createEvent: vi.fn().mockResolvedValue({ uid: "event-123" }),
 		};

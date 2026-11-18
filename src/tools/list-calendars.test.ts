@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	listCalendarsDefinition,
 	registerListCalendars,
@@ -41,7 +41,7 @@ async function listCalendars(baseUrl: string, urls: string[]) {
 }
 
 describe("registerListCalendars", () => {
-	test("returns absolute calendar URLs resolved against the base URL", async () => {
+	it("returns absolute calendar URLs resolved against the base URL", async () => {
 		const calendars = await listCalendars(
 			"https://cloud.example.com/remote.php/dav",
 			[
@@ -62,14 +62,14 @@ describe("registerListCalendars", () => {
 		]);
 	});
 
-	test("keeps calendar URLs the server already returned as absolute", async () => {
+	it("keeps calendar URLs the server already returned as absolute", async () => {
 		const url = "https://cloud.example.com/calendars/user/personal/";
 		const [calendar] = await listCalendars("https://cloud.example.com", [url]);
 
 		expect(calendar?.url).toBe(url);
 	});
 
-	test("tells agents to pass the URL back verbatim", () => {
+	it("tells agents to pass the URL back verbatim", () => {
 		expect(listCalendarsDefinition.description).toContain("absolute URL");
 		expect(listCalendarsDefinition.description).toContain("unchanged");
 	});
