@@ -53,6 +53,7 @@ export function localDayToWholeDayDate(value: Date): Date {
 export function inclusiveEndToWholeDayDate(end: Date, start: Date): Date {
 	const last = localDayToWholeDayDate(new Date(end.getTime() - 1));
 	const first = localDayToWholeDayDate(start);
+	// biome-ignore lint/complexity/useMathMinMax: Math.max returns a number; this must return the later Date.
 	return last < first ? first : last;
 }
 
