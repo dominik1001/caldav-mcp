@@ -1,3 +1,23 @@
+# [0.11.0](https://github.com/dominik1001/caldav-mcp/compare/v0.10.3...v0.11.0) (2026-11-18)
+
+
+### Bug Fixes
+
+* answer unparseable request targets with 400 instead of crashing ([f46c509](https://github.com/dominik1001/caldav-mcp/commit/f46c509d182c29a27ad9c1acd6208162cecfcb5c))
+* **deps:** regenerate package-lock.json with npm 10 for CI compatibility ([babfe90](https://github.com/dominik1001/caldav-mcp/commit/babfe9072cc5aa492f3c8e15f76d41054ad535dc))
+* **docker:** honour PORT and MCP_PORT in the image and its healthcheck ([33a0187](https://github.com/dominik1001/caldav-mcp/commit/33a01874cd71e6bd71ddcbcc531a61d498eed45d))
+* load the HTTP server only in --http mode ([5bf5405](https://github.com/dominik1001/caldav-mcp/commit/5bf540522c0ec4b065dbea565fa7b074a7e18e03))
+* only treat 127.x.x.x IP literals as loopback ([578b62b](https://github.com/dominik1001/caldav-mcp/commit/578b62ba855356e979bd446a5314d578b6207b27))
+
+
+### Features
+
+* add --http flag to run as a remote Streamable HTTP server ([43cdfca](https://github.com/dominik1001/caldav-mcp/commit/43cdfca324997bd4206c6750d4820c2b2b69bcbd)), closes [#71](https://github.com/dominik1001/caldav-mcp/issues/71)
+* parse HTTP transport config from the environment ([b1a7e06](https://github.com/dominik1001/caldav-mcp/commit/b1a7e060ff6f5f9f3275551ad9935c545347ee81))
+* serve MCP over stateless Streamable HTTP ([1d05f3d](https://github.com/dominik1001/caldav-mcp/commit/1d05f3dbf66535870120d3e55d78b736b37b4ad5))
+* **transport:** add Streamable HTTP transport via --http flag ([5b7260f](https://github.com/dominik1001/caldav-mcp/commit/5b7260f606811f95d370b4088c92d6c5641e6dec))
+* **transport:** auth, per-request server, and 405 routing for HTTP ([69d1505](https://github.com/dominik1001/caldav-mcp/commit/69d15056db84262a5c8a17394fa7011bb439a3f4))
+
 ## [0.10.3](https://github.com/dominik1001/caldav-mcp/compare/v0.10.2...v0.10.3) (2026-10-23)
 
 
