@@ -9,7 +9,7 @@ MCP server exposing CalDAV calendar operations as tools for AI assistants.
 
 ## Workflow
 - After implementing a new feature run the smoke tests (`npm run smoke` and `npm run smoke:agent`) to verify it works as expected.
-- Skip both for docs-only, test-only, or CI/tooling changes that don't touch `src/`. For other `src/` changes, `smoke` is usually enough; run `smoke:agent` too when tool names, descriptions, schemas, or error messages change.
+- Skip both for docs-only, test-only, or CI/tooling changes that don't touch `src/`. For other `src/` changes, `smoke` is usually enough; run `npm run smoke:http` too when `src/index.ts` or `src/http-*.ts` change, and `smoke:agent` when tool names, descriptions, schemas, or error messages change.
 - Both write real data to the calendar account in `.env`, and `smoke:agent` costs LLM tokens. Load the `smoke-tests` skill before running them: it lists what they create and how to find leftovers (summaries start with `caldav-mcp smoke`).
 
 ## Working with the user

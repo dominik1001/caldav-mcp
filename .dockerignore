@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+.git
+.github
+.claude
+.agents
+.superpowers
+.env
+*.md
+!LICENSE*

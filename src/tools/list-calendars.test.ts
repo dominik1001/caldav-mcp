@@ -8,16 +8,18 @@ import {
 
 type ToolHandler = () => Promise<{ content: { type: string; text: string }[] }>;
 
-async function listCalendars(baseUrl: string, urls: string[]) {
+function calendarsFor(urls: string[]) {
+	return urls.map((url, i) => ({
+		displayName: `Calendar ${i}`,
+		supportedComponents: ["VEVENT"],
+		url,
+	}));
+}
+
+function register(baseUrl: string, urls: string[]) {
 	const mockClient = {
 		baseUrl,
-		getCalendars: vi.fn().mockResolvedValue(
-			urls.map((url, i) => ({
-				displayName: `Calendar ${i}`,
-				supportedComponents: ["VEVENT"],
-				url,
-			}))
-		),
+		getCalendars: vi.fn().mockResolvedValue(calendarsFor(urls)),
 	};
 	let handler: ToolHandler | undefined;
 	const server = {
@@ -26,18 +28,26 @@ async function listCalendars(baseUrl: string, urls: string[]) {
 		},
 	};
 
-	await registerListCalendars(
+	registerListCalendars(
 		mockClient as unknown as CalDAVClient,
 		server as unknown as McpServer
 	);
 	if (!handler) {
 		throw new Error("list-calendars was not registered");
 	}
-	const result = await handler();
-	return JSON.parse(result.content[0]?.text ?? "") as {
-		displayName: string;
-		url: string;
-	}[];
+	const registered = handler;
+	const call = async () => {
+		const result = await registered();
+		return JSON.parse(result.content[0]?.text ?? "") as {
+			displayName: string;
+			url: string;
+		}[];
+	};
+	return { call, mockClient };
+}
+
+function listCalendars(baseUrl: string, urls: string[]) {
+	return register(baseUrl, urls).call();
 }
 
 describe("registerListCalendars", () => {
@@ -67,6 +77,23 @@ describe("registerListCalendars", () => {
 		const [calendar] = await listCalendars("https://cloud.example.com", [url]);
 
 		expect(calendar?.url).toBe(url);
+	});
+
+	it("does not contact CalDAV when the tool is registered", () => {
+		const { mockClient } = register("https://cloud.example.com", ["/a/"]);
+
+		expect(mockClient.getCalendars).not.toHaveBeenCalled();
+	});
+
+	it("fetches calendars on every call", async () => {
+		const { call, mockClient } = register("https://cloud.example.com", ["/a/"]);
+		await call();
+		mockClient.getCalendars.mockResolvedValue(calendarsFor(["/a/", "/b/"]));
+
+		const second = await call();
+
+		expect(second).toHaveLength(2);
+		expect(mockClient.getCalendars).toHaveBeenCalledTimes(2);
 	});
 
 	it("tells agents to pass the URL back verbatim", () => {

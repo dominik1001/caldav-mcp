@@ -1,26 +1,40 @@
 #!/usr/bin/env node
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CalDAVClient } from "ts-caldav";
 
-import { registerCompleteTodo } from "./tools/complete-todo.js";
-import { registerCreateEvent } from "./tools/create-event.js";
-import { registerCreateTodo } from "./tools/create-todo.js";
-import { registerDeleteEvent } from "./tools/delete-event.js";
-import { registerDeleteTodo } from "./tools/delete-todo.js";
-import { registerListCalendars } from "./tools/list-calendars.js";
-import { registerListEvents } from "./tools/list-events.js";
-import { registerListTodos } from "./tools/list-todos.js";
-import { registerUpdateEvent } from "./tools/update-event.js";
-import { registerUpdateTodo } from "./tools/update-todo.js";
+import { type HttpConfig, parseHttpConfig } from "./http-config.js";
+import { createServer } from "./server.js";
 
-const server = new McpServer({
-	name: "caldav-mcp",
-	version: "0.1.0",
-});
+function listeningUrl(server: Server): string {
+	const { address, family, port } = server.address() as AddressInfo;
+	const host = family === "IPv6" ? `[${address}]` : address;
+	return `http://${host}:${port}/mcp`;
+}
+
+function shutDownOnSignals(server: Server) {
+	const shutdown = () => {
+		server.close(() => process.exit(0));
+		server.closeIdleConnections();
+	};
+	process.once("SIGINT", shutdown);
+	process.once("SIGTERM", shutdown);
+}
 
 async function main() {
+	let httpConfig: HttpConfig | undefined;
+	if (process.argv.includes("--http")) {
+		try {
+			httpConfig = parseHttpConfig(process.env);
+		} catch (error) {
+			console.error((error as Error).message);
+			process.exit(1);
+			return;
+		}
+	}
+
 	const client = await CalDAVClient.create({
 		auth: {
 			password: process.env.CALDAV_PASSWORD || "",
@@ -38,20 +52,20 @@ async function main() {
 		process.exit(1);
 	}
 
-	registerCreateEvent(client, server);
-	registerListEvents(client, server);
-	registerDeleteEvent(client, server);
-	registerUpdateEvent(client, server);
-	registerCreateTodo(client, server);
-	registerListTodos(client, server);
-	registerUpdateTodo(client, server);
-	registerCompleteTodo(client, server);
-	registerDeleteTodo(client, server);
-	await registerListCalendars(client, server);
+	if (httpConfig) {
+		// Imported lazily so stdio mode never loads the HTTP stack.
+		const { startHttpServer } = await import("./http-server.js");
+		const server = await startHttpServer(httpConfig, () =>
+			createServer(client)
+		);
+		// stdout is not reserved in HTTP mode, but keep logs on stderr like stdio.
+		console.error(`caldav-mcp listening on ${listeningUrl(server)}`);
+		shutDownOnSignals(server);
+		return;
+	}
 
 	// Start receiving messages on stdin and sending messages on stdout
-	const transport = new StdioServerTransport();
-	await server.connect(transport);
+	await createServer(client).connect(new StdioServerTransport());
 }
 
 main();

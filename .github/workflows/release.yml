@@ -124,6 +124,9 @@ jobs:
           EOF
           TZ=Europe/Berlin npm run smoke
 
+      - name: Run smoke over HTTP
+        run: TZ=Europe/Berlin npm run smoke:http
+
   release:
     needs: [test, knip, smoke]
     runs-on: ubuntu-latest

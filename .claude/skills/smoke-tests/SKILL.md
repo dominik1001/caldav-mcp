@@ -7,6 +7,7 @@ description: Use before running `npm run smoke` or `npm run smoke:agent` in cald
 
 Two complementary end-to-end checks against a real CalDAV server (uses `.env`):
 - `npm run smoke` — deterministic SDK harness (`scripts/smoke.ts`). Spawns the built server over stdio via the MCP client SDK and asserts the create → list → update → delete round-trip. Fast, no LLM cost. CI runs it on every PR and push to `main` against a throwaway Radicale server (`smoke` job in `release.yml`).
+- `npm run smoke:http` — the same harness with `SMOKE_TRANSPORT=http`: starts `dist/index.js --http` on an ephemeral port with a random `MCP_AUTH_TOKEN` and runs the same round-trip over Streamable HTTP. Writes and cleans up exactly what `smoke` does, and kills the server it started even when the run fails. CI runs it right after `smoke`.
 - `npm run smoke:agent` — agent-ergonomics harness (`scripts/smoke-agent.sh`). Drives the server via `claude -p` with a JSON output schema, validating that tool names, descriptions, schemas, and error messages are usable by an LLM.
 
 `.mcp.json` at the repo root registers the server (loads `.env` via `node --env-file`) so both the agent smoke and interactive Claude Code sessions pick it up automatically.
