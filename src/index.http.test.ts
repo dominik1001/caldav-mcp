@@ -175,4 +175,30 @@ describe("index --http", () => {
 			"caldav-mcp: failed to start: Request failed: PROPFIND https://dav.example.com/ (fetch failed: getaddrinfo ENOTFOUND dav.example.com)"
 		);
 	});
+
+	it("falls back to the error code when a cause has no message", async () => {
+		// undici reports a refused multi-address connect like this.
+		const refused = Object.assign(new AggregateError([], "placeholder"), {
+			code: "ECONNREFUSED",
+			message: "",
+		});
+		const failure = new Error(
+			"Request failed: PROPFIND http://localhost:5232/",
+			{
+				cause: new TypeError("fetch failed", { cause: refused }),
+			}
+		);
+		const { consoleError, exit } = await runIndex(
+			{},
+			() => Promise.resolve(fakeServer()),
+			() => Promise.reject(failure)
+		);
+
+		await vi.waitFor(() => {
+			expect(exit).toHaveBeenCalledWith(1);
+		});
+		expect(consoleError).toHaveBeenCalledWith(
+			"caldav-mcp: failed to start: Request failed: PROPFIND http://localhost:5232/ (fetch failed: ECONNREFUSED)"
+		);
+	});
 });

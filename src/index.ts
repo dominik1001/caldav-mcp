@@ -71,6 +71,15 @@ async function main() {
 
 const MAX_CAUSE_DEPTH = 5;
 
+/** undici's AggregateError for a refused multi-address connect has no message. */
+function messageOf(error: Error): string {
+	if (error.message) {
+		return error.message;
+	}
+	const { code } = error as { code?: unknown };
+	return typeof code === "string" ? code : error.name;
+}
+
 /**
  * One line for a startup error, with its cause chain: ts-caldav and fetch
  * keep the actual network reason (ENOTFOUND, TLS errors) only in `cause`.
@@ -82,7 +91,7 @@ function describeError(error: unknown): string {
 	const causes: string[] = [];
 	let { cause } = error;
 	while (cause instanceof Error && causes.length < MAX_CAUSE_DEPTH) {
-		causes.push(cause.message);
+		causes.push(messageOf(cause));
 		({ cause } = cause);
 	}
 	return causes.length > 0
