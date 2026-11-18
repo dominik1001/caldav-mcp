@@ -139,7 +139,11 @@ export function startHttpServer(
 			send(res, 400, "Bad Request");
 			return;
 		}
-		if (pathname === HEALTH_PATH && req.method === "GET") {
+		// Node omits the body for HEAD, which some health probes send.
+		if (
+			pathname === HEALTH_PATH &&
+			(req.method === "GET" || req.method === "HEAD")
+		) {
 			send(res, 200, "ok");
 			return;
 		}

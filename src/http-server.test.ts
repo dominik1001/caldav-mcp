@@ -9,6 +9,7 @@ import { startHttpServer } from "./http-server.js";
 import { createServer } from "./server.js";
 
 const TOKEN = "s3cret";
+const SLOW_MS = 100;
 const INITIALIZE = JSON.stringify({
 	id: 1,
 	jsonrpc: "2.0",
@@ -30,6 +31,21 @@ const caldav = {
 	getCalendars: vi
 		.fn()
 		.mockResolvedValue([{ displayName: "Work", url: "/cal/work/" }]),
+	// Echoes the calendar back as the event uid; "slow" calendars answer late,
+	// so concurrent calls finish in the opposite order they started.
+	getEvents: vi.fn(async (calendarUrl: string) => {
+		await new Promise((resolve) =>
+			setTimeout(resolve, calendarUrl.includes("slow") ? SLOW_MS : 0)
+		);
+		return [
+			{
+				end: new Date("2030-01-01T11:00:00Z"),
+				start: new Date("2030-01-01T10:00:00Z"),
+				summary: "event",
+				uid: calendarUrl,
+			},
+		];
+	}),
 } as unknown as CalDAVClient;
 
 async function start(
@@ -160,15 +176,25 @@ describe("startHttpServer with a token", () => {
 		await second.close();
 	});
 
-	it("serves concurrent tool calls", async () => {
+	it("answers concurrent tool calls with their own results", async () => {
 		const client = await connect(port);
+		const listEvents = (calendarUrl: string) =>
+			client.callTool({
+				arguments: {
+					calendarUrl,
+					end: "2030-01-02T00:00:00Z",
+					start: "2030-01-01T00:00:00Z",
+				},
+				name: "list-events",
+			}) as Promise<{ content: { text: string }[] }>;
 
-		const results = await Promise.all([
-			client.callTool({ arguments: {}, name: "list-calendars" }),
-			client.callTool({ arguments: {}, name: "list-calendars" }),
+		const [slow, fast] = await Promise.all([
+			listEvents("/cal/slow/"),
+			listEvents("/cal/fast/"),
 		]);
 
-		expect(results.every((result) => !result.isError)).toBe(true);
+		expect(JSON.parse(slow.content[0]?.text ?? "")[0].uid).toContain("slow");
+		expect(JSON.parse(fast.content[0]?.text ?? "")[0].uid).toContain("fast");
 		await client.close();
 	});
 
@@ -265,6 +291,13 @@ describe("startHttpServer with a token", () => {
 			expect(health.status).toBe(200);
 		}
 	);
+
+	it("answers HEAD /health with 200 and no body", async () => {
+		const response = await raw(port, { method: "HEAD", path: "/health" });
+
+		expect(response.status).toBe(200);
+		expect(response.body).toBe("");
+	});
 
 	it("serves /health without a token", async () => {
 		const response = await raw(port, { method: "GET", path: "/health" });
