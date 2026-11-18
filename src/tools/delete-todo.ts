@@ -1,22 +1,22 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { type CalDAVClient, CalDAVError } from "ts-caldav";
 import { z } from "zod";
-import { hrefFor } from "./caldav-href.js";
+import { hrefFor, toCalendarPath } from "./caldav-href.js";
 
-type DeleteTodoInput = {
-	uid: string;
+interface DeleteTodoInput {
 	calendarUrl: string;
-};
+	uid: string;
+}
 
 export const deleteTodoDefinition = {
-	name: "delete-todo",
 	description: "Deletes a task (VTODO) in the calendar specified by its URL",
 	inputSchema: {
+		calendarUrl: z.string(),
 		uid: z
 			.string()
 			.describe("Unique identifier of the todo to delete (from list-todos)"),
-		calendarUrl: z.string(),
 	},
+	name: "delete-todo",
 	returns: "Confirmation message when the todo is successfully deleted",
 } as const;
 
@@ -28,7 +28,8 @@ export function registerDeleteTodo(client: CalDAVClient, server: McpServer) {
 			inputSchema: deleteTodoDefinition.inputSchema,
 		},
 		async (args: DeleteTodoInput) => {
-			const { uid, calendarUrl } = args;
+			const { uid } = args;
+			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
 			// Map a missing object onto the same friendly message complete-todo and
 			// update-todo raise, so all three todo tools report a missing task the
 			// same way. (delete-event still surfaces the raw transport error; the
@@ -38,15 +39,15 @@ export function registerDeleteTodo(client: CalDAVClient, server: McpServer) {
 				etag = await client.getETag(hrefFor(calendarUrl, uid));
 			} catch (error) {
 				if (error instanceof CalDAVError && error.status === 404) {
-					throw new Error(`Todo not found: ${uid}`);
+					throw new Error(`Todo not found: ${uid}`, { cause: error });
 				}
 				throw error;
 			}
 			await client.deleteTodo(calendarUrl, uid, etag);
 
 			return {
-				content: [{ type: "text", text: "Todo deleted" }],
+				content: [{ text: "Todo deleted", type: "text" }],
 			};
-		},
+		}
 	);
 }

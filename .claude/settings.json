@@ -1,0 +1,15 @@
+{
+	"hooks": {
+		"PostToolUse": [
+			{
+				"hooks": [
+					{
+						"command": "npx ultracite fix --skip=correctness/noUnusedImports --hook",
+						"type": "command"
+					}
+				],
+				"matcher": "Write|Edit"
+			}
+		]
+	}
+}

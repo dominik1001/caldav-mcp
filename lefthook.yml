@@ -3,8 +3,8 @@ pre-commit:
   commands:
     gitleaks:
       run: gitleaks git --staged --redact --no-banner
-    biome:
-      run: npx biome check --staged --write --no-errors-on-unmatched
+    ultracite:
+      run: npx ultracite fix --staged
       stage_fixed: true
     docs:
       glob: "src/tools/*.ts"

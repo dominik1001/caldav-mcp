@@ -6,6 +6,12 @@
 			"sourceType": "github",
 			"skillPath": "plugins/scion-like-git/skills/scion-like-git/SKILL.md",
 			"computedHash": "dc59162ddfceaed11c07f21fba59b3c4394fb558449ba5cec488b7fd393d757e"
+		},
+		"ultracite": {
+			"source": "haydenbleasel/ultracite",
+			"sourceType": "github",
+			"skillPath": "skills/ultracite/SKILL.md",
+			"computedHash": "786edd8e07ffab37d1d27c68a1a991b0fe4d0ba911fc97d4f93d232115f0485e"
 		}
 	}
 }

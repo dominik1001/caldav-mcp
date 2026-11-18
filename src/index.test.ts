@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, test, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 // Mock all dependencies before any imports
 vi.mock("ts-caldav");
@@ -26,9 +26,7 @@ describe("MCP Server Console Output", () => {
 		consoleErrorSpy = vi
 			.spyOn(console, "error")
 			.mockImplementation(() => undefined);
-		vi.spyOn(process, "exit").mockImplementation(() => {
-			return undefined as never;
-		});
+		vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
 
 		// Mock successful CalDAV client
 		const { CalDAVClient } = await import("ts-caldav");
@@ -50,16 +48,7 @@ describe("MCP Server Console Output", () => {
 			connect = vi.fn().mockResolvedValue(undefined);
 		}
 		vi.mocked(McpServer).mockImplementation(
-			MockMcpServer as unknown as typeof McpServer,
-		);
-
-		// Mock StdioServerTransport
-		const { StdioServerTransport } = await import(
-			"@modelcontextprotocol/sdk/server/stdio.js"
-		);
-		class MockStdioServerTransport {}
-		vi.mocked(StdioServerTransport).mockImplementation(
-			MockStdioServerTransport as unknown as typeof StdioServerTransport,
+			MockMcpServer as unknown as typeof McpServer
 		);
 
 		// Mock tool registration functions
@@ -69,14 +58,14 @@ describe("MCP Server Console Output", () => {
 		const listEvents = await import("./tools/list-events.js");
 
 		vi.mocked(createEvent.registerCreateEvent).mockImplementation(
-			() => undefined,
+			() => undefined
 		);
 		vi.mocked(deleteEvent.registerDeleteEvent).mockImplementation(
-			() => undefined,
+			() => undefined
 		);
 		vi.mocked(listCalendars.registerListCalendars).mockResolvedValue(undefined);
 		vi.mocked(listEvents.registerListEvents).mockImplementation(
-			() => undefined,
+			() => undefined
 		);
 
 		// Now import the main module which will execute
@@ -86,14 +75,14 @@ describe("MCP Server Console Output", () => {
 		await new Promise((resolve) => setTimeout(resolve, 100));
 	});
 
-	test("should not write to console in success case", () => {
+	it("should not write to console in success case", () => {
 		// The main assertion: in a success case, there should be no console output
 		// This test will FAIL if console.log or console.error is called
 		expect(consoleLogSpy).not.toHaveBeenCalled();
 		expect(consoleErrorSpy).not.toHaveBeenCalled();
 	});
 
-	test("MCP server was initialized successfully", () => {
+	it("MCP server was initialized successfully", () => {
 		// This test passes if the server started without errors
 		// The fact that we reached this point means the server initialized
 		expect(consoleErrorSpy).not.toHaveBeenCalled();

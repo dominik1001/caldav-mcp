@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { registerCreateTodo } from "./create-todo.js";
 
 type ToolHandler = (params: {
@@ -19,11 +19,13 @@ function makeServer() {
 	const originalRegisterTool = server.registerTool.bind(server);
 	server.registerTool = vi.fn(
 		(name: string, config: unknown, handler: ToolHandler) => {
-			if (name === "create-todo") toolHandler = handler;
+			if (name === "create-todo") {
+				toolHandler = handler;
+			}
 			return originalRegisterTool(name, config, handler);
-		},
+		}
 	) as typeof server.registerTool;
-	return { server, getHandler: () => toolHandler };
+	return { getHandler: () => toolHandler, server };
 }
 
 function setup() {
@@ -33,19 +35,21 @@ function setup() {
 	const { server, getHandler } = makeServer();
 	registerCreateTodo(mockClient as unknown as CalDAVClient, server);
 	const handler = getHandler();
-	if (!handler) throw new Error("handler not registered");
-	return { mockClient, handler };
+	if (!handler) {
+		throw new Error("handler not registered");
+	}
+	return { handler, mockClient };
 }
 
 describe("registerCreateTodo", () => {
-	test("converts due from ISO string to Date and returns the uid", async () => {
+	it("converts due from ISO string to Date and returns the uid", async () => {
 		const { mockClient, handler } = setup();
 		const dueIso = "2026-07-01T09:00:00.000Z";
 
 		const result = await handler({
-			summary: "Pay invoice",
 			calendarUrl: "/f/tasks/",
 			due: dueIso,
+			summary: "Pay invoice",
 		});
 
 		expect(result.content[0].text).toBe("todo-123");
@@ -55,10 +59,10 @@ describe("registerCreateTodo", () => {
 		expect(passed?.due?.toISOString()).toBe(dueIso);
 	});
 
-	test("omits optional fields when not provided", async () => {
+	it("omits optional fields when not provided", async () => {
 		const { mockClient, handler } = setup();
 
-		await handler({ summary: "Just a title", calendarUrl: "/f/tasks/" });
+		await handler({ calendarUrl: "/f/tasks/", summary: "Just a title" });
 
 		const passed = mockClient.createTodo.mock.calls[0]?.[1];
 		expect(passed).not.toHaveProperty("due");
@@ -68,13 +72,13 @@ describe("registerCreateTodo", () => {
 		expect(passed).not.toHaveProperty("location");
 	});
 
-	test("passes status when provided", async () => {
+	it("passes status when provided", async () => {
 		const { mockClient, handler } = setup();
 
 		await handler({
-			summary: "In progress task",
 			calendarUrl: "/f/tasks/",
 			status: "IN-PROCESS",
+			summary: "In progress task",
 		});
 
 		const passed = mockClient.createTodo.mock.calls[0]?.[1];

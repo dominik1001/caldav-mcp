@@ -36,7 +36,7 @@ export function toWholeDayDate(iso: string): Date {
  */
 export function localDayToWholeDayDate(value: Date): Date {
 	return new Date(
-		Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()),
+		Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())
 	);
 }
 
@@ -53,6 +53,7 @@ export function localDayToWholeDayDate(value: Date): Date {
 export function inclusiveEndToWholeDayDate(end: Date, start: Date): Date {
 	const last = localDayToWholeDayDate(new Date(end.getTime() - 1));
 	const first = localDayToWholeDayDate(start);
+	// biome-ignore lint/complexity/useMathMinMax: Math.max returns a number; this must return the later Date.
 	return last < first ? first : last;
 }
 
@@ -70,8 +71,10 @@ export function carryOverWholeDayDates(existing: Event): Partial<Event> {
 	const carried: Partial<Event> = {
 		start: localDayToWholeDayDate(existing.start),
 	};
-	if (existing.end) {
-		carried.end = inclusiveEndToWholeDayDate(existing.end, existing.start);
+	// Events built outside ts-caldav's parser can lack DTEND.
+	const end = existing.end as Date | undefined;
+	if (end) {
+		carried.end = inclusiveEndToWholeDayDate(end, existing.start);
 	}
 	if (existing.recurrenceRule?.until) {
 		carried.recurrenceRule = {
