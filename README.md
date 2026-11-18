@@ -125,7 +125,7 @@ docker run --rm -p 3000:3000 \
   caldav-mcp
 ```
 
-The image binds to `0.0.0.0:3000` and serves `POST /mcp`. Because it listens on all interfaces, `MCP_AUTH_TOKEN` is required (see [Transports](#transports)). The container is not needed for the default stdio setup in [Setup](#setup) above.
+The image binds to `0.0.0.0:3000`, serves `POST /mcp`, and reports its health from `GET /health`. Because it listens on all interfaces, `MCP_AUTH_TOKEN` is required: without it the container exits at startup (see [Transports](#transports)). The container is not needed for the default stdio setup in [Setup](#setup) above.
 
 ## Available Tools
 
