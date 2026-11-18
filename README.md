@@ -7,7 +7,7 @@
 [![Release](https://github.com/dominik1001/caldav-mcp/actions/workflows/release.yml/badge.svg)](https://github.com/dominik1001/caldav-mcp/actions/workflows/release.yml)
 [![npm version](https://badge.fury.io/js/caldav-mcp.svg)](https://www.npmjs.com/package/caldav-mcp)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-[![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+[![code style: biome](https://img.shields.io/badge/code_style-biome-60a5fa.svg?style=flat-square&logo=biome)](https://biomejs.dev)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-purple.svg)](https://modelcontextprotocol.io)
 [![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 
@@ -25,6 +25,10 @@ Using caldav-mcp? [Tell us how in three minutes](https://tally.so/r/GepQM2?sourc
 - Create calendar events
 - Update calendar events
 - Delete calendar events by UID
+- List tasks (VTODOs), open ones by default or filtered by status
+- Create and update tasks, with optional due and start dates
+- Mark tasks as completed
+- Delete tasks by UID
 
 ## Setup
 
