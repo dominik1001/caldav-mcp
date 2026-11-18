@@ -2,12 +2,8 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 // Mock all dependencies before any imports
 vi.mock("ts-caldav");
-vi.mock("@modelcontextprotocol/sdk/server/mcp.js");
 vi.mock("@modelcontextprotocol/sdk/server/stdio.js");
-vi.mock("./tools/create-event.js");
-vi.mock("./tools/delete-event.js");
-vi.mock("./tools/list-calendars.js");
-vi.mock("./tools/list-events.js");
+vi.mock("./server.js");
 
 describe("MCP Server Console Output", () => {
 	let consoleLogSpy: ReturnType<typeof vi.spyOn>;
@@ -39,34 +35,11 @@ describe("MCP Server Console Output", () => {
 			]),
 		} as unknown as Awaited<ReturnType<typeof CalDAVClient.create>>);
 
-		// Mock MCP Server
-		const { McpServer } = await import(
-			"@modelcontextprotocol/sdk/server/mcp.js"
-		);
-		class MockMcpServer {
-			registerTool = vi.fn();
-			connect = vi.fn().mockResolvedValue(undefined);
-		}
-		vi.mocked(McpServer).mockImplementation(
-			MockMcpServer as unknown as typeof McpServer
-		);
-
-		// Mock tool registration functions
-		const createEvent = await import("./tools/create-event.js");
-		const deleteEvent = await import("./tools/delete-event.js");
-		const listCalendars = await import("./tools/list-calendars.js");
-		const listEvents = await import("./tools/list-events.js");
-
-		vi.mocked(createEvent.registerCreateEvent).mockImplementation(
-			() => undefined
-		);
-		vi.mocked(deleteEvent.registerDeleteEvent).mockImplementation(
-			() => undefined
-		);
-		vi.mocked(listCalendars.registerListCalendars).mockResolvedValue(undefined);
-		vi.mocked(listEvents.registerListEvents).mockImplementation(
-			() => undefined
-		);
+		// Mock the MCP server factory
+		const { createServer } = await import("./server.js");
+		vi.mocked(createServer).mockReturnValue({
+			connect: vi.fn().mockResolvedValue(undefined),
+		} as unknown as ReturnType<typeof createServer>);
 
 		// Now import the main module which will execute
 		await import("./index.js");

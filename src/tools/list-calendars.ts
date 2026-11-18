@@ -10,25 +10,23 @@ export const listCalendarsDefinition = {
 	returns: "List of all available calendars",
 } as const;
 
-export async function registerListCalendars(
-	client: CalDAVClient,
-	server: McpServer
-) {
-	// ts-caldav returns server-relative hrefs; resolve them so agents don't
-	// have to guess how to prefix the base URL.
-	const calendars = (await client.getCalendars()).map((calendar) => ({
-		...calendar,
-		url: toAbsoluteUrl(calendar.url, client.baseUrl),
-	}));
-
+export function registerListCalendars(client: CalDAVClient, server: McpServer) {
 	server.registerTool(
 		listCalendarsDefinition.name,
 		{
 			description: listCalendarsDefinition.description,
 			inputSchema: listCalendarsDefinition.inputSchema,
 		},
-		async () => ({
-			content: [{ text: JSON.stringify(calendars), type: "text" }],
-		})
+		async () => {
+			// ts-caldav returns server-relative hrefs; resolve them so agents don't
+			// have to guess how to prefix the base URL.
+			const calendars = (await client.getCalendars()).map((calendar) => ({
+				...calendar,
+				url: toAbsoluteUrl(calendar.url, client.baseUrl),
+			}));
+			return {
+				content: [{ text: JSON.stringify(calendars), type: "text" }],
+			};
+		}
 	);
 }
