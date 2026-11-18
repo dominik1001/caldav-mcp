@@ -69,9 +69,30 @@ async function main() {
 	await createServer(client).connect(new StdioServerTransport());
 }
 
+const MAX_CAUSE_DEPTH = 5;
+
+/**
+ * One line for a startup error, with its cause chain: ts-caldav and fetch
+ * keep the actual network reason (ENOTFOUND, TLS errors) only in `cause`.
+ */
+function describeError(error: unknown): string {
+	if (!(error instanceof Error)) {
+		return String(error);
+	}
+	const causes: string[] = [];
+	let { cause } = error;
+	while (cause instanceof Error && causes.length < MAX_CAUSE_DEPTH) {
+		causes.push(cause.message);
+		({ cause } = cause);
+	}
+	return causes.length > 0
+		? `${error.message} (${causes.join(": ")})`
+		: error.message;
+}
+
 main().catch((error: unknown) => {
-	// e.g. EADDRINUSE: one readable line instead of an unhandled rejection.
-	const message = error instanceof Error ? error.message : String(error);
-	console.error(`caldav-mcp: failed to start: ${message}`);
+	// e.g. EADDRINUSE or an unreachable CalDAV server: one readable line
+	// instead of an unhandled rejection.
+	console.error(`caldav-mcp: failed to start: ${describeError(error)}`);
 	process.exit(1);
 });

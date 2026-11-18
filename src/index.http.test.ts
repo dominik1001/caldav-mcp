@@ -18,7 +18,9 @@ const fakeServer = (): FakeServer => ({
 /** Imports index.ts afresh in HTTP mode with the given extra env. */
 async function runIndex(
 	env: Record<string, string>,
-	started: () => Promise<FakeServer> = () => Promise.resolve(fakeServer())
+	started: () => Promise<FakeServer> = () => Promise.resolve(fakeServer()),
+	createCaldav: () => Promise<unknown> = () =>
+		Promise.resolve({ getCalendars: vi.fn().mockResolvedValue([]) })
 ) {
 	vi.resetModules();
 	process.argv = ["node", "dist/index.js", "--http"];
@@ -52,9 +54,9 @@ async function runIndex(
 	}) as typeof process.once);
 
 	const { CalDAVClient } = await import("ts-caldav");
-	vi.mocked(CalDAVClient.create).mockResolvedValue({
-		getCalendars: vi.fn().mockResolvedValue([]),
-	} as unknown as Awaited<ReturnType<typeof CalDAVClient.create>>);
+	vi.mocked(CalDAVClient.create).mockImplementation(
+		createCaldav as unknown as typeof CalDAVClient.create
+	);
 	const { StdioServerTransport } = await import(
 		"@modelcontextprotocol/sdk/server/stdio.js"
 	);
@@ -148,6 +150,29 @@ describe("index --http", () => {
 		});
 		expect(consoleError).toHaveBeenCalledWith(
 			"caldav-mcp: failed to start: listen EADDRINUSE: address already in use 127.0.0.1:3000"
+		);
+	});
+
+	it("keeps the underlying cause when CalDAV discovery fails", async () => {
+		const failure = new Error(
+			"Request failed: PROPFIND https://dav.example.com/",
+			{
+				cause: new TypeError("fetch failed", {
+					cause: new Error("getaddrinfo ENOTFOUND dav.example.com"),
+				}),
+			}
+		);
+		const { consoleError, exit } = await runIndex(
+			{},
+			() => Promise.resolve(fakeServer()),
+			() => Promise.reject(failure)
+		);
+
+		await vi.waitFor(() => {
+			expect(exit).toHaveBeenCalledWith(1);
+		});
+		expect(consoleError).toHaveBeenCalledWith(
+			"caldav-mcp: failed to start: Request failed: PROPFIND https://dav.example.com/ (fetch failed: getaddrinfo ENOTFOUND dav.example.com)"
 		);
 	});
 });
