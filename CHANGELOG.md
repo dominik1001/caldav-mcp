@@ -1,3 +1,13 @@
+## [0.11.1](https://github.com/dominik1001/caldav-mcp/compare/v0.11.0...v0.11.1) (2026-11-18)
+
+
+### Bug Fixes
+
+* answer HEAD /health and pin concurrent results in tests ([95c3ff7](https://github.com/dominik1001/caldav-mcp/commit/95c3ff706827cff35c91a3586b959af7a7f8464e))
+* fall back to the error code for causes without a message ([ec5aedc](https://github.com/dominik1001/caldav-mcp/commit/ec5aedcb165a67a1a8043466168acaed0224e633))
+* keep the error cause in the one-line startup message ([5ec4624](https://github.com/dominik1001/caldav-mcp/commit/5ec46246c3160548bf9aefcddba8709a0a81b1bc))
+* report startup errors in one line and shut down on Node <18.2 ([f9d82ea](https://github.com/dominik1001/caldav-mcp/commit/f9d82ea4ee8f81abde061ac2ac0784bd3a1d9745))
+
 # [0.11.0](https://github.com/dominik1001/caldav-mcp/compare/v0.10.3...v0.11.0) (2026-11-18)
 
 
