@@ -5,6 +5,14 @@ vi.mock("ts-caldav");
 vi.mock("@modelcontextprotocol/sdk/server/stdio.js");
 vi.mock("./server.js");
 
+// Records whether stdio mode loads the HTTP stack (SDK streamableHttp and
+// @hono/node-server); it should only be imported with --http.
+const httpModule = vi.hoisted(() => ({ imported: false }));
+vi.mock("./http-server.js", () => {
+	httpModule.imported = true;
+	return { startHttpServer: vi.fn() };
+});
+
 describe("MCP Server Console Output", () => {
 	let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 	let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -53,6 +61,10 @@ describe("MCP Server Console Output", () => {
 		// This test will FAIL if console.log or console.error is called
 		expect(consoleLogSpy).not.toHaveBeenCalled();
 		expect(consoleErrorSpy).not.toHaveBeenCalled();
+	});
+
+	it("does not load the HTTP server module in stdio mode", () => {
+		expect(httpModule.imported).toBe(false);
 	});
 
 	it("MCP server was initialized successfully", () => {

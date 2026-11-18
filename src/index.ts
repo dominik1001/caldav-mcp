@@ -6,7 +6,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CalDAVClient } from "ts-caldav";
 
 import { type HttpConfig, parseHttpConfig } from "./http-config.js";
-import { startHttpServer } from "./http-server.js";
 import { createServer } from "./server.js";
 
 function listeningUrl(server: Server): string {
@@ -54,6 +53,8 @@ async function main() {
 	}
 
 	if (httpConfig) {
+		// Imported lazily so stdio mode never loads the HTTP stack.
+		const { startHttpServer } = await import("./http-server.js");
 		const server = await startHttpServer(httpConfig, () =>
 			createServer(client)
 		);
