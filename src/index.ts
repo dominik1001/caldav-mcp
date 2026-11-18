@@ -17,7 +17,8 @@ function listeningUrl(server: Server): string {
 function shutDownOnSignals(server: Server) {
 	const shutdown = () => {
 		server.close(() => process.exit(0));
-		server.closeIdleConnections();
+		// closeIdleConnections only exists from Node 18.2; engines allows 18.0.
+		server.closeIdleConnections?.();
 	};
 	process.once("SIGINT", shutdown);
 	process.once("SIGTERM", shutdown);
@@ -68,4 +69,9 @@ async function main() {
 	await createServer(client).connect(new StdioServerTransport());
 }
 
-main();
+main().catch((error: unknown) => {
+	// e.g. EADDRINUSE: one readable line instead of an unhandled rejection.
+	const message = error instanceof Error ? error.message : String(error);
+	console.error(`caldav-mcp: failed to start: ${message}`);
+	process.exit(1);
+});
