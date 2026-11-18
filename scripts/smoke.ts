@@ -3,10 +3,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { hrefFor } from "../src/tools/caldav-href.js";
 
-const ABSOLUTE_URL = /^https?:\/\//;
-const BARE_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const RRULE_LINE = /^RRULE:(.*)$/m;
-const RRULE_UNTIL = /(?:^|;)UNTIL=([^;]*)/;
+const ABSOLUTE_URL = /^https?:\/\//u;
+const BARE_DATE = /^\d{4}-\d{2}-\d{2}$/u;
+const RRULE_LINE = /^RRULE:(?<rule>.*)$/mu;
+const RRULE_UNTIL = /(?:^|;)UNTIL=(?<until>[^;]*)/u;
 
 interface ListedCalendar {
 	displayName?: string;
@@ -49,7 +49,9 @@ function requireEnv(name: string): string {
 }
 
 function expectIcsProp(ics: string, name: string, expectedValue: string) {
-	const actual = ics.match(new RegExp(`^${name}[;:](.*)$`, "m"))?.[1]?.trim();
+	const actual = ics
+		.match(new RegExp(`^${name}[;:](?<value>.*)$`, "mu"))
+		?.groups?.value?.trim();
 	if (actual !== expectedValue) {
 		throw new Error(`${name} mismatch: ${actual} !== ${expectedValue}\n${ics}`);
 	}
@@ -173,8 +175,8 @@ async function smokeWholeDayEvents(client: Client, calendarUrl: string) {
 			}
 			// ts-caldav writes a whole-day UNTIL in extended form (2030-10-26),
 			// so compare the calendar day, not the spelling.
-			const rrule = ics.match(RRULE_LINE)?.[1]?.trim() ?? "";
-			const until = rrule.match(RRULE_UNTIL)?.[1] ?? "";
+			const rrule = ics.match(RRULE_LINE)?.groups?.rule?.trim() ?? "";
+			const until = rrule.match(RRULE_UNTIL)?.groups?.until ?? "";
 			if (
 				until.replaceAll("-", "") !== offsetWholeDayUntil.replaceAll("-", "")
 			) {

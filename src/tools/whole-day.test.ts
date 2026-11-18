@@ -2,12 +2,12 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, Event } from "ts-caldav";
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 import { registerCreateEvent } from "./create-event.js";
 import { registerListEvents } from "./list-events.js";
 import { registerUpdateEvent } from "./update-event.js";
 
-const MENTIONS_WHOLE_DAY = /whole-day|wholeDay/i;
+const MENTIONS_WHOLE_DAY = /whole-day|wholeDay/iu;
 
 // What the CalDAV server stores for a whole-day event: VALUE=DATE days, with
 // an exclusive DTEND.
@@ -111,7 +111,7 @@ const trip: Stored = {
 // The `test.fails` cases are known bugs (see PR #100's review). Each one
 // flips to a failure once its bug is fixed; then drop `.fails`.
 describe("whole-day events through the MCP client", () => {
-	test("create-event stores the day named in a UTC date", async () => {
+	it("create-event stores the day named in a UTC date", async () => {
 		const { client, events } = fakeCalendar();
 		const mcp = await connect(client);
 
@@ -129,7 +129,7 @@ describe("whole-day events through the MCP client", () => {
 		});
 	});
 
-	test("create-event stores the day named in a date with an offset", async () => {
+	it("create-event stores the day named in a date with an offset", async () => {
 		const { client, events } = fakeCalendar();
 		const mcp = await connect(client);
 
@@ -148,7 +148,7 @@ describe("whole-day events through the MCP client", () => {
 		});
 	});
 
-	test("update-event keeps the days when only the summary changes", async () => {
+	it("update-event keeps the days when only the summary changes", async () => {
 		const { client, events } = fakeCalendar([trip]);
 		const mcp = await connect(client);
 
@@ -165,7 +165,7 @@ describe("whole-day events through the MCP client", () => {
 		});
 	});
 
-	test.fails("dates from list-events can be passed back to update-event as they are", async () => {
+	it.fails("dates from list-events can be passed back to update-event as they are", async () => {
 		const { client, events } = fakeCalendar([trip]);
 		const mcp = await connect(client);
 
@@ -191,7 +191,7 @@ describe("whole-day events through the MCP client", () => {
 		});
 	});
 
-	test.fails("the list-events description the client sees explains whole-day dates", async () => {
+	it.fails("the list-events description the client sees explains whole-day dates", async () => {
 		const { client } = fakeCalendar();
 		const mcp = await connect(client);
 

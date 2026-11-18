@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, Event } from "ts-caldav";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerUpdateEvent } from "./update-event.js";
 
 type ToolHandler = (params: {
@@ -48,7 +48,7 @@ function makeServer() {
 }
 
 describe("registerUpdateEvent", () => {
-	test("updates only the provided fields", async () => {
+	it("updates only the provided fields", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
 			updateEvent: vi.fn().mockResolvedValue({
@@ -89,7 +89,7 @@ describe("registerUpdateEvent", () => {
 		);
 	});
 
-	test("throws when event is not found", async () => {
+	it("throws when event is not found", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([]),
 			updateEvent: vi.fn(),
@@ -109,7 +109,7 @@ describe("registerUpdateEvent", () => {
 		expect(mockClient.updateEvent).not.toHaveBeenCalled();
 	});
 
-	test("appends trailing slash to calendarUrl when building href", async () => {
+	it("appends trailing slash to calendarUrl when building href", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
 			updateEvent: vi.fn().mockResolvedValue({
@@ -135,7 +135,7 @@ describe("registerUpdateEvent", () => {
 		);
 	});
 
-	test("converts recurrenceRule.until from ISO string to Date", async () => {
+	it("converts recurrenceRule.until from ISO string to Date", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
 			updateEvent: vi.fn().mockResolvedValue({
@@ -166,7 +166,7 @@ describe("registerUpdateEvent", () => {
 		expect(passed?.recurrenceRule?.freq).toBe("DAILY");
 	});
 
-	test("turns a timed event into a whole-day event on the same day", async () => {
+	it("turns a timed event into a whole-day event on the same day", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
 			updateEvent: vi.fn().mockResolvedValue({
@@ -198,7 +198,7 @@ describe("registerUpdateEvent", () => {
 		expect(passed?.end.toISOString().slice(0, 10)).toBe("2026-04-03");
 	});
 
-	test("updates wholeDay flag when provided", async () => {
+	it("updates wholeDay flag when provided", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
 			updateEvent: vi.fn().mockResolvedValue({
@@ -225,7 +225,7 @@ describe("registerUpdateEvent", () => {
 		const passed = mockClient.updateEvent.mock.calls[0]?.[1];
 		expect(passed?.wholeDay).toBe(true);
 	});
-	test("preserves the calendar date when updating a whole-day event with a positive UTC offset", async () => {
+	it("preserves the calendar date when updating a whole-day event with a positive UTC offset", async () => {
 		const mockClient = {
 			getEventsByHref: vi.fn().mockResolvedValue([existingEvent]),
 			updateEvent: vi.fn().mockResolvedValue({
@@ -260,7 +260,7 @@ describe("registerUpdateEvent", () => {
 		);
 	});
 
-	test("keeps treating start/end as whole-day when wholeDay isn't passed but the existing event is whole-day", async () => {
+	it("keeps treating start/end as whole-day when wholeDay isn't passed but the existing event is whole-day", async () => {
 		const existingWholeDayEvent: Event = {
 			...existingEvent,
 			wholeDay: true,
@@ -344,7 +344,7 @@ describe("registerUpdateEvent whole-day handling", () => {
 	const asExclusiveEnd = (d: Date) =>
 		asDate(new Date(d.getTime() + 24 * 60 * 60 * 1000));
 
-	test("writes back the stored DTSTART and DTEND when only the location changes", async () => {
+	it("writes back the stored DTSTART and DTEND when only the location changes", async () => {
 		const client = await run(wholeDayEvent(), {
 			calendarUrl: "/f/test-calendar/",
 			location: "Somewhere else",
@@ -357,7 +357,7 @@ describe("registerUpdateEvent whole-day handling", () => {
 		expect(asExclusiveEnd(payload.end)).toBe("2026-08-23");
 	});
 
-	test("keeps RRULE UNTIL, EXDATE, RDATE and RECURRENCE-ID on their days when only the location changes", async () => {
+	it("keeps RRULE UNTIL, EXDATE, RDATE and RECURRENCE-ID on their days when only the location changes", async () => {
 		const yearly: Event = {
 			...wholeDayEvent(),
 			end: new Date(2026, 9, 1),
@@ -383,7 +383,7 @@ describe("registerUpdateEvent whole-day handling", () => {
 		expect(asDate(payload.recurrenceId)).toBe("2028-09-30");
 	});
 
-	test("keeps a zero-length whole-day event (DTEND equal to DTSTART) a valid range", async () => {
+	it("keeps a zero-length whole-day event (DTEND equal to DTSTART) a valid range", async () => {
 		const zeroLength: Event = {
 			...wholeDayEvent(),
 			end: new Date(2026, 7, 18),
@@ -399,7 +399,7 @@ describe("registerUpdateEvent whole-day handling", () => {
 		expect(asDate(payload.end)).toBe("2026-08-18");
 	});
 
-	test("turns a timed event into a whole-day event on its local day", async () => {
+	it("turns a timed event into a whole-day event on its local day", async () => {
 		// 00:30 to 01:30 in Berlin, still the 17th in UTC.
 		const lateNight: Event = {
 			...wholeDayEvent(),
@@ -419,7 +419,7 @@ describe("registerUpdateEvent whole-day handling", () => {
 		expect(asExclusiveEnd(payload.end)).toBe("2026-08-19");
 	});
 
-	test("keeps a timed event that ends at midnight on one day when it becomes whole-day", async () => {
+	it("keeps a timed event that ends at midnight on one day when it becomes whole-day", async () => {
 		const toMidnight: Event = {
 			...wholeDayEvent(),
 			end: new Date("2026-08-19T00:00:00+02:00"),
@@ -437,7 +437,7 @@ describe("registerUpdateEvent whole-day handling", () => {
 		expect(asExclusiveEnd(payload.end)).toBe("2026-08-19");
 	});
 
-	test("converts an explicitly given date to its calendar day", async () => {
+	it("converts an explicitly given date to its calendar day", async () => {
 		const client = await run(wholeDayEvent(), {
 			calendarUrl: "/f/test-calendar/",
 			start: "2026-09-01T00:00:00+02:00",
@@ -449,7 +449,7 @@ describe("registerUpdateEvent whole-day handling", () => {
 		expect(payload.end).toEqual(new Date(Date.UTC(2026, 7, 22)));
 	});
 
-	test("does not touch the dates of a timed event", async () => {
+	it("does not touch the dates of a timed event", async () => {
 		const timed: Event = { ...wholeDayEvent(), wholeDay: false };
 		const client = await run(timed, {
 			calendarUrl: "/f/test-calendar/",

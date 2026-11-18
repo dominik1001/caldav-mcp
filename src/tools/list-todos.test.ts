@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient, Todo } from "ts-caldav";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
 	compareTodos,
 	listTodosDefinition,
@@ -59,7 +59,7 @@ function parse(result: { content: { text: string }[] }) {
 }
 
 describe("compareTodos", () => {
-	test("orders by sortOrder asc, then due asc, then summary", () => {
+	it("orders by sortOrder asc, then due asc, then summary", () => {
 		const a = todo({ sortOrder: 2, summary: "A", uid: "a" });
 		const b = todo({ sortOrder: 1, summary: "B", uid: "b" });
 		const c = todo({ due: new Date("2026-01-01"), summary: "C", uid: "c" });
@@ -71,7 +71,7 @@ describe("compareTodos", () => {
 		expect(sorted).toEqual(["b", "a", "c", "d", "e"]);
 	});
 
-	test("sortOrder wins over due when both are present", () => {
+	it("sortOrder wins over due when both are present", () => {
 		// a has the earlier sortOrder but the later due; sortOrder must win,
 		// proving precedence and not a due-first regression.
 		const a = todo({
@@ -90,7 +90,7 @@ describe("compareTodos", () => {
 		expect(sorted).toEqual(["a", "b"]);
 	});
 
-	test("undated tasks sort after dated ones; summary breaks final tie", () => {
+	it("undated tasks sort after dated ones; summary breaks final tie", () => {
 		const x = todo({ summary: "Zebra", uid: "x" });
 		const y = todo({ summary: "Apple", uid: "y" });
 		const sorted = [x, y].sort(compareTodos).map((t) => t.uid);
@@ -107,7 +107,7 @@ describe("registerListTodos", () => {
 		todo({ summary: "No status", uid: "nostatus" }),
 	];
 
-	test("defaults to open: includes NEEDS-ACTION, IN-PROCESS, and missing status", async () => {
+	it("defaults to open: includes NEEDS-ACTION, IN-PROCESS, and missing status", async () => {
 		const { mockClient, handler } = setup(mixed);
 		const out = parse(await handler({ calendarUrl: "/f/tasks/" }));
 		expect(mockClient.getTodos).toHaveBeenCalledWith("/f/tasks/", {
@@ -120,7 +120,7 @@ describe("registerListTodos", () => {
 		]);
 	});
 
-	test("status=COMPLETED returns only completed", async () => {
+	it("status=COMPLETED returns only completed", async () => {
 		const { handler } = setup(mixed);
 		const out = parse(
 			await handler({ calendarUrl: "/f/tasks/", status: "COMPLETED" })
@@ -128,7 +128,7 @@ describe("registerListTodos", () => {
 		expect(out.todos.map((t) => t.uid)).toEqual(["done"]);
 	});
 
-	test("an exact status filter matches only that status", async () => {
+	it("an exact status filter matches only that status", async () => {
 		const { handler } = setup(mixed);
 		const out = parse(
 			await handler({ calendarUrl: "/f/tasks/", status: "CANCELLED" })
@@ -136,7 +136,7 @@ describe("registerListTodos", () => {
 		expect(out.todos.map((t) => t.uid)).toEqual(["cancel"]);
 	});
 
-	test("status=ALL returns everything", async () => {
+	it("status=ALL returns everything", async () => {
 		const { handler } = setup(mixed);
 		const out = parse(
 			await handler({ calendarUrl: "/f/tasks/", status: "ALL" })
@@ -144,7 +144,7 @@ describe("registerListTodos", () => {
 		expect(out.total).toBe(5);
 	});
 
-	test("due window excludes undated tasks and out-of-range dates", async () => {
+	it("due window excludes undated tasks and out-of-range dates", async () => {
 		const items = [
 			todo({ due: new Date("2026-01-01"), summary: "Early", uid: "early" }),
 			todo({
@@ -166,7 +166,7 @@ describe("registerListTodos", () => {
 		expect(out.todos.map((t) => t.uid)).toEqual(["inrange"]);
 	});
 
-	test("paginates with limit/offset and reports pre-pagination total", async () => {
+	it("paginates with limit/offset and reports pre-pagination total", async () => {
 		const items = Array.from({ length: 5 }, (_, i) =>
 			todo({
 				sortOrder: i,
@@ -187,12 +187,12 @@ describe("registerListTodos", () => {
 describe("listTodosDefinition.inputSchema", () => {
 	const { status, limit } = listTodosDefinition.inputSchema;
 
-	test("limit is bounded to an upper cap", () => {
+	it("limit is bounded to an upper cap", () => {
 		expect(limit.safeParse(500).success).toBe(true);
 		expect(limit.safeParse(501).success).toBe(false);
 	});
 
-	test("status accepts the keywords and raw statuses but not lowercase aliases", () => {
+	it("status accepts the keywords and raw statuses but not lowercase aliases", () => {
 		for (const ok of ["OPEN", "ALL", "COMPLETED", "NEEDS-ACTION"]) {
 			expect(status.safeParse(ok).success).toBe(true);
 		}

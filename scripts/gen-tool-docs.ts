@@ -128,13 +128,14 @@ function updateReadme(readmePath: string, body: string): string {
 		);
 	}
 	const pattern = new RegExp(
-		`${escapeRegex(START)}[\\s\\S]*?${escapeRegex(END)}`
+		`${escapeRegex(START)}[\\s\\S]*?${escapeRegex(END)}`,
+		"u"
 	);
 	return current.replace(pattern, block);
 }
 
 function escapeRegex(s: string): string {
-	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return s.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
 
 function main() {

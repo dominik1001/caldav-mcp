@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { registerDeleteEvent } from "./delete-event.js";
 
 type ToolHandler = (params: {
@@ -9,7 +9,7 @@ type ToolHandler = (params: {
 }) => Promise<{ content: { type: string; text: string }[] }>;
 
 describe("registerDeleteEvent", () => {
-	test("successfully deletes event when server returns 204", async () => {
+	it("successfully deletes event when server returns 204", async () => {
 		const mockClient = {
 			deleteEvent: vi.fn().mockResolvedValue(undefined),
 			getETag: vi.fn().mockResolvedValue('"abc123"'),
@@ -51,7 +51,7 @@ describe("registerDeleteEvent", () => {
 		);
 	});
 
-	test("fetches etag before deleting and passes it to deleteEvent", async () => {
+	it("fetches etag before deleting and passes it to deleteEvent", async () => {
 		const mockClient = {
 			deleteEvent: vi.fn().mockResolvedValue(undefined),
 			getETag: vi.fn().mockResolvedValue('"etag-from-server"'),
@@ -96,7 +96,7 @@ describe("registerDeleteEvent", () => {
 		expect(etagOrder).toBeLessThan(deleteOrder);
 	});
 
-	test("successfully deletes event when server returns 200", async () => {
+	it("successfully deletes event when server returns 200", async () => {
 		const mockClient = {
 			deleteEvent: vi.fn().mockResolvedValue(undefined),
 			getETag: vi.fn().mockResolvedValue('"def456"'),
