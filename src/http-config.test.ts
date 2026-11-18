@@ -50,6 +50,12 @@ describe("parseHttpConfig", () => {
 		);
 	});
 
+	it("requires a token for a 127.-prefixed hostname", () => {
+		expect(() => parseHttpConfig({ MCP_HOST: "127.foo.example" })).toThrow(
+			"MCP_AUTH_TOKEN is required"
+		);
+	});
+
 	it("allows a non-loopback address with a token", () => {
 		expect(
 			parseHttpConfig({ MCP_AUTH_TOKEN: "s3cret", MCP_HOST: "0.0.0.0" }).host
@@ -65,10 +71,14 @@ describe("isLoopbackHost", () => {
 		}
 	);
 
-	it.each(["0.0.0.0", "::", "192.168.1.10", "example.com"])(
-		"treats %s as not loopback",
-		(host) => {
-			expect(isLoopbackHost(host)).toBe(false);
-		}
-	);
+	it.each([
+		"0.0.0.0",
+		"::",
+		"192.168.1.10",
+		"example.com",
+		"127.attacker.example",
+		"127.0.0.1.nip.io",
+	])("treats %s as not loopback", (host) => {
+		expect(isLoopbackHost(host)).toBe(false);
+	});
 });

@@ -8,10 +8,12 @@ const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 3000;
 const MAX_PORT = 65_535;
 const DIGITS = /^\d+$/u;
+// An IPv4 literal in 127.0.0.0/8, not a hostname that merely starts with "127.".
+const LOOPBACK_IPV4 = /^127(?:\.\d{1,3}){3}$/u;
 
 /** True for addresses only reachable from this machine. */
 export function isLoopbackHost(host: string): boolean {
-	return host === "localhost" || host === "::1" || host.startsWith("127.");
+	return host === "localhost" || host === "::1" || LOOPBACK_IPV4.test(host);
 }
 
 function parsePort(name: string, value: string): number {
