@@ -78,18 +78,38 @@ The server supports two transports, selected at startup:
 
 - **stdio** (default): JSON-RPC over stdin/stdout, suitable for the standard MCP client configuration shown in [Setup](#setup).
   ```bash
-  node dist/index.js
+  npx caldav-mcp
   ```
-- **Streamable HTTP** (`--http`): exposes a single `POST /mcp` endpoint implementing the MCP Streamable HTTP transport. Each request is handled statelessly.
+- **Streamable HTTP** (`--http`): runs as a long-lived server that remote MCP clients connect to at `POST /mcp`. Each request is handled statelessly, and `GET /health` answers `ok` for health checks.
   ```bash
-  node dist/index.js --http
+  MCP_AUTH_TOKEN=your-shared-secret npx caldav-mcp --http
   ```
 
   | Env var | Default | Description |
   |---|---|---|
-  | `PORT` | `3000` | TCP port to bind. |
-  | `LISTEN_ADDR` | `localhost` | Bind address. Set to `0.0.0.0` to listen on all interfaces. |
-  | `MCP_API_KEY` | _(unset)_ | When set, requests must include `Authorization: Bearer <MCP_API_KEY>`; others get `401`. If unset, the endpoint is **unauthenticated** (a warning is logged) — only safe when bound to a trusted network. |
+  | `MCP_HOST` | `127.0.0.1` | Bind address. Set to `0.0.0.0` to listen on all interfaces. |
+  | `MCP_PORT` | `PORT`, else `3000` | TCP port to bind. Falls back to `PORT`, which platforms like Cloud Run set. |
+  | `MCP_AUTH_TOKEN` | _(unset)_ | When set, requests must send `Authorization: Bearer <MCP_AUTH_TOKEN>`; others get `401`. Required when `MCP_HOST` is not a loopback address. |
+
+  Connect a client, for example Claude Code (`.mcp.json`):
+
+  ```json
+  {
+    "mcpServers": {
+      "calendar": {
+        "type": "http",
+        "url": "http://127.0.0.1:3000/mcp",
+        "headers": { "Authorization": "Bearer your-shared-secret" }
+      }
+    }
+  }
+  ```
+
+  Security notes:
+  - One server process serves one CalDAV account. Anyone with the token can read and change that calendar.
+  - The server speaks plain HTTP. For remote access, put it behind a reverse proxy that terminates TLS.
+  - Requests with an `Origin` header are rejected and there is no CORS support, so browser-based clients can't connect directly.
+  - When bound to loopback, only `localhost`/`127.0.0.1`/`[::1]` Host headers are accepted, which blocks DNS rebinding.
 
 ## Docker
 
@@ -101,11 +121,11 @@ docker run --rm -p 3000:3000 \
   -e CALDAV_BASE_URL=https://your-caldav-server.com/dav \
   -e CALDAV_USERNAME=your-username \
   -e CALDAV_PASSWORD=your-password \
-  -e MCP_API_KEY=your-shared-secret \
+  -e MCP_AUTH_TOKEN=your-shared-secret \
   caldav-mcp
 ```
 
-The image binds to `0.0.0.0:3000` and serves `POST /mcp`. Because it listens on all interfaces, set `MCP_API_KEY` so the endpoint requires a bearer token (see [Transports](#transports)). The container is not needed for the default stdio setup in [Setup](#setup) above.
+The image binds to `0.0.0.0:3000` and serves `POST /mcp`. Because it listens on all interfaces, `MCP_AUTH_TOKEN` is required (see [Transports](#transports)). The container is not needed for the default stdio setup in [Setup](#setup) above.
 
 ## Available Tools
 
