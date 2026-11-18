@@ -17,7 +17,8 @@ function listeningUrl(server: Server): string {
 function shutDownOnSignals(server: Server) {
 	const shutdown = () => {
 		server.close(() => process.exit(0));
-		server.closeIdleConnections();
+		// closeIdleConnections only exists from Node 18.2; engines allows 18.0.
+		server.closeIdleConnections?.();
 	};
 	process.once("SIGINT", shutdown);
 	process.once("SIGTERM", shutdown);
@@ -68,4 +69,39 @@ async function main() {
 	await createServer(client).connect(new StdioServerTransport());
 }
 
-main();
+const MAX_CAUSE_DEPTH = 5;
+
+/** undici's AggregateError for a refused multi-address connect has no message. */
+function messageOf(error: Error): string {
+	if (error.message) {
+		return error.message;
+	}
+	const { code } = error as { code?: unknown };
+	return typeof code === "string" ? code : error.name;
+}
+
+/**
+ * One line for a startup error, with its cause chain: ts-caldav and fetch
+ * keep the actual network reason (ENOTFOUND, TLS errors) only in `cause`.
+ */
+function describeError(error: unknown): string {
+	if (!(error instanceof Error)) {
+		return String(error);
+	}
+	const causes: string[] = [];
+	let { cause } = error;
+	while (cause instanceof Error && causes.length < MAX_CAUSE_DEPTH) {
+		causes.push(messageOf(cause));
+		({ cause } = cause);
+	}
+	return causes.length > 0
+		? `${error.message} (${causes.join(": ")})`
+		: error.message;
+}
+
+main().catch((error: unknown) => {
+	// e.g. EADDRINUSE or an unreachable CalDAV server: one readable line
+	// instead of an unhandled rejection.
+	console.error(`caldav-mcp: failed to start: ${describeError(error)}`);
+	process.exit(1);
+});
