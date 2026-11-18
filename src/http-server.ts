@@ -32,6 +32,15 @@ function hostnameOf(hostHeader: string): string {
 	return hostHeader.split(":")[0] ?? "";
 }
 
+/** The request path, or null when the target is not a parseable URL. */
+function pathnameOf(url: string | undefined): string | null {
+	try {
+		return new URL(url ?? "/", "http://localhost").pathname;
+	} catch {
+		return null;
+	}
+}
+
 function digest(value: string): Buffer {
 	return createHash("sha256").update(value).digest();
 }
@@ -123,7 +132,13 @@ export function startHttpServer(
 	createServer: () => McpServer
 ): Promise<Server> {
 	const server = createHttpServer((req, res) => {
-		const { pathname } = new URL(req.url ?? "/", "http://localhost");
+		const pathname = pathnameOf(req.url);
+		if (pathname === null) {
+			// Node's parser accepts targets like `http://[` that URL rejects;
+			// throwing here would crash the process before any auth check.
+			send(res, 400, "Bad Request");
+			return;
+		}
 		if (pathname === HEALTH_PATH && req.method === "GET") {
 			send(res, 200, "ok");
 			return;

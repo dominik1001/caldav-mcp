@@ -1,5 +1,5 @@
 import { request, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import { type AddressInfo, connect as connectSocket } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -19,6 +19,7 @@ const INITIALIZE = JSON.stringify({
 		protocolVersion: "2025-06-18",
 	},
 });
+const BAD_REQUEST_STATUS = /^HTTP\/1\.1 400 /u;
 const POST_HEADERS = {
 	Accept: "application/json, text/event-stream",
 	"Content-Type": "application/json",
@@ -92,6 +93,22 @@ function raw(
 		);
 		req.on("error", reject);
 		req.end(options.body);
+	});
+}
+
+/** Sends a raw HTTP/1.1 request line, bypassing client-side URL validation. */
+function rawLine(port: number, requestLine: string): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const socket = connectSocket(port, "127.0.0.1", () => {
+			socket.end(`${requestLine}\r\nHost: localhost\r\n\r\n`);
+		});
+		let response = "";
+		socket.setEncoding("utf8");
+		socket.on("data", (chunk: string) => {
+			response += chunk;
+		});
+		socket.on("end", () => resolve(response));
+		socket.on("error", reject);
 	});
 }
 
@@ -198,6 +215,14 @@ describe("startHttpServer with a token", () => {
 		expect(response.status).toBe(403);
 	});
 
+	it("rejects a 127.-prefixed hostname that is not an IP with 403", async () => {
+		const response = await initialize(port, {
+			Host: "127.attacker.example:3000",
+		});
+
+		expect(response.status).toBe(403);
+	});
+
 	it.each(["localhost:3000", "[::1]:3000", "127.0.0.1"])(
 		"accepts the loopback Host header %s",
 		async (host) => {
@@ -229,6 +254,17 @@ describe("startHttpServer with a token", () => {
 
 		expect(response.status).toBe(404);
 	});
+
+	it.each(["GET http://[ HTTP/1.1", "GET http://a:99999/ HTTP/1.1"])(
+		"answers an unparseable request target (%s) with 400 and stays up",
+		async (requestLine) => {
+			const response = await rawLine(port, requestLine);
+			const health = await raw(port, { method: "GET", path: "/health" });
+
+			expect(response).toMatch(BAD_REQUEST_STATUS);
+			expect(health.status).toBe(200);
+		}
+	);
 
 	it("serves /health without a token", async () => {
 		const response = await raw(port, { method: "GET", path: "/health" });
