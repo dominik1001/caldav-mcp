@@ -1,6 +1,6 @@
 ---
 name: smoke-tests
-description: Use before running `npm run smoke` or `npm run smoke:agent` in caldav-mcp - what each harness checks, what it needs, what real calendar data it writes, and how to find leftovers after a failed run.
+description: Use before running `npm run smoke`, `npm run smoke:http` or `npm run smoke:agent` in caldav-mcp - what each harness checks, what it needs, what real calendar data it writes, and how to find leftovers after a failed run.
 ---
 
 # Smoke tests
