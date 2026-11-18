@@ -13,6 +13,8 @@
 
 Maintained by the team behind Langmail. Want mail, calendar and contacts for your agent over one hosted MCP, with OAuth and nothing to run? → [langmail.me](https://langmail.me/?ref=caldav-mcp)
 
+Using caldav-mcp? [Tell us how in three minutes](https://tally.so/r/GepQM2?source=readme).
+
 </div>
 
 ## ✨ Features
