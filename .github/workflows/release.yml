@@ -142,7 +142,25 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
-      - run: npx semantic-release --repository-url git@github.com:dominik1001/caldav-mcp.git
+      - name: Release
+        id: release
+        run: |
+          before=$(jq -r .version package.json)
+          npx semantic-release --repository-url git@github.com:langmail/caldav-mcp.git
+          after=$(jq -r .version package.json)
+          # @semantic-release/npm writes the new version into package.json only when it releases
+          if [ "$after" != "$before" ]; then echo "version=$after" >> "$GITHUB_OUTPUT"; fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LEFTHOOK: "0"
+      # Runs here because a release created with GITHUB_TOKEN starts no other workflow
+      - name: Publish to MCP Registry
+        if: steps.release.outputs.version != ''
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          MCP_PUBLISHER_VERSION: v1.8.9
+        run: |
+          jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.tmp && mv server.tmp server.json
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

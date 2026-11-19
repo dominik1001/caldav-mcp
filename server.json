@@ -1,9 +1,9 @@
 {
 	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-	"name": "io.github.dominik1001/caldav-mcp",
+	"name": "io.github.langmail/caldav-mcp",
 	"description": "CalDAV calendar operations (list, create, update, delete events) as MCP tools.",
 	"repository": {
-		"url": "https://github.com/dominik1001/caldav-mcp",
+		"url": "https://github.com/langmail/caldav-mcp",
 		"source": "github"
 	},
 	"version": "0.8.0",

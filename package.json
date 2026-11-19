@@ -2,13 +2,13 @@
 	"name": "caldav-mcp",
 	"version": "0.11.1",
 	"description": "A CalDAV client using Model Context Protocol (MCP) to expose calendar operations as tools for AI assistants.",
-	"homepage": "https://github.com/dominik1001/caldav-mcp#readme",
+	"homepage": "https://github.com/langmail/caldav-mcp#readme",
 	"bugs": {
-		"url": "https://github.com/dominik1001/caldav-mcp/issues"
+		"url": "https://github.com/langmail/caldav-mcp/issues"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/dominik1001/caldav-mcp.git"
+		"url": "https://github.com/langmail/caldav-mcp.git"
 	},
 	"license": "MIT",
 	"author": "Dominik Grusemann",
@@ -69,5 +69,5 @@
 		"node": ">=18.0.0",
 		"npm": ">=9.0.0"
 	},
-	"mcpName": "io.github.dominik1001/caldav-mcp"
+	"mcpName": "io.github.langmail/caldav-mcp"
 }

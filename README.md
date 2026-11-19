@@ -4,7 +4,7 @@
 
 🗓️ A CalDAV Model Context Protocol (MCP) server to expose calendar operations as tools for AI assistants.
 
-[![Release](https://github.com/dominik1001/caldav-mcp/actions/workflows/release.yml/badge.svg)](https://github.com/dominik1001/caldav-mcp/actions/workflows/release.yml)
+[![Release](https://github.com/langmail/caldav-mcp/actions/workflows/release.yml/badge.svg)](https://github.com/langmail/caldav-mcp/actions/workflows/release.yml)
 [![npm version](https://badge.fury.io/js/caldav-mcp.svg)](https://www.npmjs.com/package/caldav-mcp)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 [![code style: biome](https://img.shields.io/badge/code_style-biome-60a5fa.svg?style=flat-square&logo=biome)](https://biomejs.dev)

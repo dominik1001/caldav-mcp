@@ -20,10 +20,10 @@ discussions, or pull requests.**
 
 Instead, report them privately using GitHub's private vulnerability reporting:
 
-1. Go to the [Security tab](https://github.com/dominik1001/caldav-mcp/security)
+1. Go to the [Security tab](https://github.com/langmail/caldav-mcp/security)
    of the repository.
 2. Click **Report a vulnerability** (or use this direct link:
-   <https://github.com/dominik1001/caldav-mcp/security/advisories/new>).
+   <https://github.com/langmail/caldav-mcp/security/advisories/new>).
 3. Fill in as much detail as you can.
 
 This creates a private advisory visible only to you and the maintainers.
