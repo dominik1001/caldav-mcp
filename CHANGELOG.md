@@ -1,3 +1,10 @@
+## [0.11.2](https://github.com/langmail/caldav-mcp/compare/v0.11.1...v0.11.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* point package and registry metadata at langmail/caldav-mcp ([#174](https://github.com/langmail/caldav-mcp/issues/174)) ([562c4bf](https://github.com/langmail/caldav-mcp/commit/562c4bf277c14473ba1a4f47285795c2d8104268))
+
 ## [0.11.1](https://github.com/dominik1001/caldav-mcp/compare/v0.11.0...v0.11.1) (2026-11-18)
 
 
