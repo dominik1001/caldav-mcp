@@ -153,6 +153,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LEFTHOOK: "0"
+      # The registry checks that the npm version exists, and npm can answer
+      # 404 for a minute or more right after publishing.
+      - name: Wait for the version on npm
+        if: steps.release.outputs.version != ''
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          for _ in $(seq 1 40); do
+            npm view "caldav-mcp@$VERSION" version >/dev/null 2>&1 && exit 0
+            echo "Waiting for caldav-mcp@$VERSION on npm..."
+            sleep 15
+          done
+          echo "caldav-mcp@$VERSION did not appear on npm within 10 minutes" >&2
+          exit 1
       # Runs here because a release created with GITHUB_TOKEN starts no other workflow
       - name: Publish to MCP Registry
         if: steps.release.outputs.version != ''
