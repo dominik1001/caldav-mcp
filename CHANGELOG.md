@@ -1,3 +1,10 @@
+## [0.11.3](https://github.com/langmail/caldav-mcp/compare/v0.11.2...v0.11.3) (2026-11-19)
+
+
+### Bug Fixes
+
+* **ci:** wait for the npm version before publishing to the MCP Registry ([#175](https://github.com/langmail/caldav-mcp/issues/175)) ([763453d](https://github.com/langmail/caldav-mcp/commit/763453dcf5b2a1a0cae73702f196b0bb1150b3c5))
+
 ## [0.11.2](https://github.com/langmail/caldav-mcp/compare/v0.11.1...v0.11.2) (2026-11-19)
 
 
