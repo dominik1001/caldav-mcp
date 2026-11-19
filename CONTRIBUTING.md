@@ -7,7 +7,7 @@ Thank you for contributing to caldav-mcp! This guide will help you get started.
 1. **Prerequisites**: Node.js >= 18.0.0, npm >= 9.0.0, [gitleaks](https://github.com/gitleaks/gitleaks) (used by the pre-commit hook; `brew install gitleaks`)
 2. **Clone and install**:
    ```bash
-   git clone https://github.com/dominik1001/caldav-mcp.git
+   git clone https://github.com/langmail/caldav-mcp.git
    cd caldav-mcp
    npm install
    ```
@@ -120,8 +120,8 @@ Releases are fully automated via semantic-release:
 
 ## Questions or Issues?
 
-- **Bug reports**: [GitHub Issues](https://github.com/dominik1001/caldav-mcp/issues)
-- **Questions**: [GitHub Discussions](https://github.com/dominik1001/caldav-mcp/discussions)
+- **Bug reports**: [GitHub Issues](https://github.com/langmail/caldav-mcp/issues)
+- **Questions**: [GitHub Discussions](https://github.com/langmail/caldav-mcp/discussions)
 - **Security issues**: See [SECURITY.md](SECURITY.md)
 
 Thank you for contributing! 🎉
