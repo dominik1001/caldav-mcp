@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CalDAVClient } from "ts-caldav";
 import { z } from "zod";
 import { toCalendarPath } from "./caldav-href.js";
+import { expandEvents } from "./recurrence.js";
 
 interface ListEventsInput {
 	calendarUrl: string;
@@ -29,7 +30,7 @@ export const listEventsDefinition = {
 	},
 	name: "list-events",
 	returns:
-		"A list of events that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, and optionally `description` and `location`",
+		"A list of occurrences that fall within the given timeframe, each containing `uid`, `summary`, `start`, `end`, `recurring`, `occurrence`, and optionally `description` and `location`. A recurring series contributes one entry per occurrence, so several entries share a `uid`. Careful when acting on one of them: `uid` addresses the whole series, and update-event and delete-event take nothing finer, so they change or remove every instance. `occurrence` names the single slot for display and cannot be passed back to target it.",
 } as const;
 
 export function registerListEvents(client: CalDAVClient, server: McpServer) {
@@ -42,19 +43,30 @@ export function registerListEvents(client: CalDAVClient, server: McpServer) {
 		async (args: ListEventsInput) => {
 			const { start, end } = args;
 			const calendarUrl = toCalendarPath(args.calendarUrl, client.baseUrl);
-			const options = {
-				end: new Date(end),
-				start: new Date(start),
-			};
-			const allEvents = await client.getEvents(calendarUrl, options);
-			const data = allEvents.map((e) => ({
-				end: e.end,
-				start: e.start,
-				summary: e.summary,
-				uid: e.uid,
-				...(e.description && { description: e.description }),
-				...(e.location && { location: e.location }),
-			}));
+			const windowStart = new Date(start);
+			const windowEnd = new Date(end);
+			const allEvents = await client.getEvents(calendarUrl, {
+				end: windowEnd,
+				start: windowStart,
+			});
+			const data = expandEvents(allEvents, windowStart, windowEnd).map(
+				({ event, start: occurrenceStart, key, fromSeries }) => ({
+					end: new Date(
+						occurrenceStart.getTime() +
+							(event.end.getTime() - event.start.getTime())
+					),
+					// Identifies this occurrence within the series. `uid` addresses the
+					// whole series, so update-event and delete-event acting on it hit
+					// every instance, not the one shown here.
+					occurrence: key,
+					recurring: fromSeries,
+					start: occurrenceStart,
+					summary: event.summary,
+					uid: event.uid,
+					...(event.description && { description: event.description }),
+					...(event.location && { location: event.location }),
+				})
+			);
 			return {
 				content: [{ text: JSON.stringify(data), type: "text" }],
 			};
